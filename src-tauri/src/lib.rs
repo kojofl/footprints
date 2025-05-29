@@ -1,3 +1,9 @@
+mod commands;
+mod image_manager;
+
+use anyhow::{Context, Result};
+use commands::get_image;
+use image_manager::ImageManager;
 use tauri::async_runtime::spawn;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -5,7 +11,7 @@ use tauri::{AppHandle, Manager};
 use tokio::time::{sleep, Duration};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub fn run() -> Result<()> {
     let mut builder = tauri::Builder::default();
     #[cfg(desktop)]
     {
@@ -17,7 +23,7 @@ pub fn run() {
         }));
     }
     builder
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![get_image])
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 window.hide().unwrap();
@@ -26,7 +32,13 @@ pub fn run() {
             _ => {}
         })
         .setup(|app| {
-            spawn(setup(app.handle().clone()));
+            let app_clone = app.handle().clone();
+            spawn(async move {
+                if let Err(e) = setup(app_clone.clone()).await {
+                    println!("{:?}", e);
+                    app_clone.exit(1);
+                }
+            });
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let open_i = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open_i, &quit_i])?;
@@ -57,17 +69,18 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .with_context(|| "error while running tauri application")?;
+    Ok(())
 }
 
-#[tauri::command]
-fn greet(name: String) -> String {
-    format!("Hello {name} from Rust!")
-}
-
-async fn setup(app: AppHandle) -> Result<(), ()> {
+async fn setup(app: AppHandle) -> Result<()> {
     // Fake performing some heavy action for 3 seconds
     println!("Performing really heavy backend setup task...");
+    let image_manager = match ImageManager::init(app.clone()) {
+        Ok(m) => m,
+        Err(e) => panic!("{e:?}"),
+    };
+    app.manage(image_manager);
     sleep(Duration::from_secs(3)).await;
     println!("Backend setup task completed!");
     let splash_window = app.get_webview_window("splashscreen").unwrap();
