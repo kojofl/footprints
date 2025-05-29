@@ -1,0 +1,92 @@
+<script lang="ts">
+	import type { ExperimentStateProps } from "./types.js";
+
+	const { state_machine, step_size }: ExperimentStateProps = $props();
+	const size = 20;
+	const thickness = 2;
+	const color = "black";
+	let progress = $state(0);
+	let id: number | undefined = $state(undefined);
+	console.log(step_size);
+
+	function move() {
+		id = setInterval(frame, 5);
+		function frame() {
+			if (progress >= 100) {
+				clearInterval(id);
+				progress = 100;
+			} else {
+				progress += step_size;
+			}
+		}
+	}
+
+	function pause() {
+		if (id) {
+			clearInterval(id);
+		}
+	}
+
+	function start() {
+		move();
+	}
+</script>
+
+<p>Baseline</p>
+
+<div class="fixation-cross-container">
+	<div
+		class="fixation-cross"
+		style="--cross-size: {size}px; --cross-thickness: {thickness}px; --cross-color: {color};"
+	></div>
+</div>
+<button onclick={start}>Start</button>
+<button onclick={pause}>Pause</button>
+<div class="flex container m-auto">
+	<progress class="progress h-8" value={progress} max="100"></progress>
+</div>
+
+<style>
+	.fixation-cross-container {
+		background-color: white;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 80%;
+		height: 80vh; /* Or a specific height if you prefer */
+		position: relative; /* Or relative, depending on your layout */
+		top: 10%;
+		left: 10%;
+	}
+
+	.fixation-cross {
+		width: var(--cross-size);
+		height: var(--cross-size);
+		position: relative;
+	}
+
+	.fixation-cross::before,
+	.fixation-cross::after {
+		content: "";
+		position: absolute;
+		background-color: var(--cross-color);
+	}
+
+	/* Horizontal line */
+	.fixation-cross::before {
+		left: 50%;
+		top: 50%;
+		width: var(--cross-size);
+		height: var(--cross-thickness);
+		transform: translate(-50%, -50%);
+	}
+
+	/* Vertical line */
+	.fixation-cross::after {
+		left: 50%;
+		top: 50%;
+		width: var(--cross-thickness);
+		height: var(--cross-size);
+		transform: translate(-50%, -50%);
+	}
+</style>
