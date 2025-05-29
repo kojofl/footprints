@@ -1,38 +1,19 @@
 <script lang="ts">
+	import Countdown from "$components/Countdown.svelte";
 	import type { ExperimentStateProps } from "./types.js";
 
-	const { state_machine, step_size }: ExperimentStateProps = $props();
+	const { state_machine, step_size, img_url }: ExperimentStateProps =
+		$props();
 	const size = 20;
 	const thickness = 2;
 	const color = "black";
-	let progress = $state(0);
-	let id: number | undefined = $state(undefined);
-	console.log(step_size);
+	let started = $state(false);
 
-	function move() {
-		id = setInterval(frame, 5);
-		function frame() {
-			if (progress >= 100) {
-				clearInterval(id);
-				progress = 100;
-			} else {
-				progress += step_size;
-			}
-		}
-	}
-
-	function pause() {
-		if (id) {
-			clearInterval(id);
-		}
-	}
-
-	function start() {
-		move();
+	function start_experiment() {
+		state_machine.debounce(2000, "start");
+		started = true;
 	}
 </script>
-
-<p>Baseline</p>
 
 <div class="fixation-cross-container">
 	<div
@@ -40,11 +21,19 @@
 		style="--cross-size: {size}px; --cross-thickness: {thickness}px; --cross-color: {color};"
 	></div>
 </div>
-<button onclick={start}>Start</button>
-<button onclick={pause}>Pause</button>
-<div class="flex container m-auto">
-	<progress class="progress h-8" value={progress} max="100"></progress>
-</div>
+{#if !started}
+	<div class="mx-auto w-full max-w-md space-y-4 content-center flex">
+		<button
+			type="button"
+			class="btn preset-filled-secondary-500"
+			onclick={start_experiment}>Go</button
+		>
+	</div>
+{:else}
+	<div class="mx-auto w-full max-w-md space-y-4 content-center flex">
+		<Countdown duration={2} />
+	</div>
+{/if}
 
 <style>
 	.fixation-cross-container {

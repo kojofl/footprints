@@ -1,6 +1,5 @@
 import { skeleton } from "@skeletonlabs/tw-plugin";
 import forms from "@tailwindcss/forms";
-import type { Config } from "tailwindcss";
 
 const config = {
 	darkMode: "class",

@@ -6,4 +6,5 @@ export type MyEvents = "start" | "s_fin" | "g_fin" | "cancel";
 export interface ExperimentStateProps {
 	step_size: number;
 	state_machine: FiniteStateMachine<MyStates, MyEvents>;
+	img_url?: string;
 }
