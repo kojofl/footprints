@@ -58,6 +58,7 @@ jobs:
 
       - name: Get version from tauri.conf.json
         id: get_version
+        shell: bash
         run: |
           # Ensure jq is available (usually is on GitHub runners)
           # sudo apt-get install jq # if not
