@@ -49,6 +49,13 @@ jobs:
       - name: install frontend dependencies
         run: bun install 
 
+      - name: install jq (windows only)
+        if: matrix.platform == 'windows-latest' # This must match the platform value defined above.
+        uses: dcarbone/install-jq-action@v3
+        with:
+          version: '1.7'
+          force: false
+
       - name: Get version from tauri.conf.json
         id: get_version
         run: |
