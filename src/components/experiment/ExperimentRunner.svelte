@@ -59,9 +59,7 @@
 				},
 			},
 			rating: {
-				_enter: () => {
-					experiment_state_machine.debounce(2000, "cancel");
-				},
+				_enter: () => {},
 				cancel: () => {
 					openState = false;
 				},
@@ -74,7 +72,7 @@
 	let State = $state(StateMap[experiment_state_machine.current]);
 
 	$effect(() => {
-		State = StateMap[experiment_state_machine.current] ?? State;
+		State = StateMap[experiment_state_machine.current];
 	});
 </script>
 
