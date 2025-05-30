@@ -74,14 +74,9 @@ pub fn run() -> Result<()> {
 }
 
 async fn setup(app: AppHandle) -> Result<()> {
-    // Fake performing some heavy action for 3 seconds
     println!("Performing really heavy backend setup task...");
-    let image_manager = match ImageManager::init(app.clone()) {
-        Ok(m) => m,
-        Err(e) => panic!("{e:?}"),
-    };
+    let image_manager = ImageManager::init(app.clone())?;
     app.manage(image_manager);
-    sleep(Duration::from_secs(3)).await;
     println!("Backend setup task completed!");
     let splash_window = app.get_webview_window("splashscreen").unwrap();
     let main_window = app.get_webview_window("main").unwrap();

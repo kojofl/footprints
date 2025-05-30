@@ -21,19 +21,17 @@
 		style="--cross-size: {size}px; --cross-thickness: {thickness}px; --cross-color: {color};"
 	></div>
 </div>
-{#if !started}
-	<div class="mx-auto w-full max-w-md space-y-4 content-center flex">
+<div class="flex container m-auto justify-center">
+	{#if !started}
 		<button
 			type="button"
 			class="btn preset-filled-secondary-500"
 			onclick={start_experiment}>Go</button
 		>
-	</div>
-{:else}
-	<div class="mx-auto w-full max-w-md space-y-4 content-center flex">
+	{:else}
 		<Countdown duration={2} />
-	</div>
-{/if}
+	{/if}
+</div>
 
 <style>
 	.fixation-cross-container {

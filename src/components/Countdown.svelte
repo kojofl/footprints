@@ -11,7 +11,9 @@
 
 	// We use this to indicate when the debounce is going to happen
 	// if we have this at 0 the debounce happens when we display 1.
-	// This is arbitrary but i think this looks like the best.
+	// This is arbitrary but i think this looks the best i.e. when
+	// specifying duration = 3 you will see 3,2,1,0 and the 3 and 0
+	// will be shown slightly shorter.
 	let elapsed = $state(600);
 	// A countdown of 0 seconds would not make sense
 	let duration = $state(Math.max(props.duration, 1) * 1000);
@@ -47,7 +49,7 @@
 </script>
 
 {#key countdown}
-	<div class="absolute" in:fly={flyInConfig} out:fly={flyOutConfig}>
+	<div class="absolute text-lg" in:fly={flyInConfig} out:fly={flyOutConfig}>
 		{countdown}s
 	</div>
 {/key}

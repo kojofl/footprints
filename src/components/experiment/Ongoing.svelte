@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Countdown from "$components/Countdown.svelte";
+    import { fade } from "svelte/transition";
 	import type { ExperimentStateProps } from "./types.js";
 
 	const { state_machine, step_size, img_url }: ExperimentStateProps =
@@ -47,13 +49,20 @@
 <div class="fixation-cross-container">
 	<img src={img_url} alt="stimulus" />
 </div>
-{#if start_go}
-	<div class="flex container m-auto">
-		<progress class="progress h-8" value={progress} max="100"></progress>
-	</div>
-	<button onclick={start}>Start</button>
-	<button onclick={pause}>Pause</button>
-{/if}
+<div class="flex flex-col">
+	{#if start_go}
+		<div class="flex container m-auto" transition:fade>
+			<progress class="progress h-8" value={progress} max="100"
+			></progress>
+		</div>
+		<button onclick={start}>Start</button>
+		<button onclick={pause}>Pause</button>
+	{:else}
+		<div class="flex container m-auto justify-center">
+			<Countdown duration={3} />
+		</div>
+	{/if}
+</div>
 
 <style>
 	.fixation-cross-container {
