@@ -2,7 +2,7 @@
 
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/optional/presets';
-@import '@skeletonlabs/skeleton/themes/modern';
+@import '@skeletonlabs/skeleton/themes/hamlindigo';
 
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
 
