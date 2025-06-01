@@ -21,11 +21,11 @@
 		style="--cross-size: {size}px; --cross-thickness: {thickness}px; --cross-color: {color};"
 	></div>
 </div>
-<div class="flex container m-auto justify-center">
+<div class="flex mt-5 container m-auto justify-center">
 	{#if !started}
 		<button
 			type="button"
-			class="btn preset-filled-secondary-500"
+			class="btn preset-filled-primary-500"
 			onclick={start_experiment}>Go</button
 		>
 	{:else}

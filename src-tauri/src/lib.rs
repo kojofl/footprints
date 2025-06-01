@@ -2,13 +2,12 @@ mod commands;
 mod image_manager;
 
 use anyhow::{Context, Result};
-use commands::get_image;
+use commands::{get_image, open_calibration};
 use image_manager::ImageManager;
 use tauri::async_runtime::spawn;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
-use tokio::time::{sleep, Duration};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
@@ -23,7 +22,7 @@ pub fn run() -> Result<()> {
         }));
     }
     builder
-        .invoke_handler(tauri::generate_handler![get_image])
+        .invoke_handler(tauri::generate_handler![get_image, open_calibration])
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 window.hide().unwrap();
@@ -40,8 +39,9 @@ pub fn run() -> Result<()> {
                 }
             });
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let open_c = MenuItem::with_id(app, "calibration", "Calibration", true, None::<&str>)?;
             let open_i = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_i, &quit_i])?;
+            let menu = Menu::with_items(app, &[&open_i, &open_c, &quit_i])?;
             TrayIconBuilder::new()
                 .menu(&menu)
                 .icon(app.default_window_icon().unwrap().clone())
@@ -52,7 +52,14 @@ pub fn run() -> Result<()> {
                     "open" => {
                         let main_window = app.get_webview_window("main").unwrap();
                         main_window.show().unwrap();
+                        main_window.unminimize().unwrap();
                         main_window.set_focus().unwrap();
+                    }
+                    "calibration" => {
+                        let calibration_window = app.get_webview_window("calibration").unwrap();
+                        calibration_window.show().unwrap();
+                        calibration_window.unminimize().unwrap();
+                        calibration_window.set_focus().unwrap();
                     }
                     _ => panic!("Handler for event: {:?} not implemented", event.id()),
                 })

@@ -23,6 +23,10 @@ const config = {
 					{
 						name: "modern",
 						enhancements: true
+					},
+					{
+						name: "rocket",
+						enhancements: true
 					}
 				]
 			}

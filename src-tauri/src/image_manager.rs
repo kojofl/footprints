@@ -17,17 +17,14 @@ impl ImageManager {
             .resolve("resources/images/", BaseDirectory::Resource)
             .context("Image folder not found")?;
 
-        println!("{path:?}");
-
         let mut v = Vec::new();
-        for (i, entry) in fs::read_dir(path)
+        for (_, entry) in fs::read_dir(path)
             .context("Failed to open image folder")?
             .enumerate()
         {
             let Ok(entry) = entry else {
                 continue;
             };
-            println!("{i}");
             let mut pic = Vec::new();
             let img = ImageReader::open(entry.path())?.decode()?;
             img.write_to(&mut Cursor::new(&mut pic), image::ImageFormat::WebP)?;

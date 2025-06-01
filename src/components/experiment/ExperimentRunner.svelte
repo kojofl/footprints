@@ -6,6 +6,8 @@
 	import type { MyEvents, MyStates } from "./types.js";
 	import { onDestroy, onMount } from "svelte";
 	import Baseline from "./Baseline.svelte";
+	import { fly } from "svelte/transition";
+	import { quintOut } from "svelte/easing";
 
 	interface Experiment {
 		openState: boolean;
@@ -74,6 +76,26 @@
 	$effect(() => {
 		State = StateMap[experiment_state_machine.current];
 	});
+
+	const flyInConfig = {
+		x: 200,
+		duration: 500,
+		easing: quintOut,
+	};
+
+	const flyOutConfig = {
+		x: -200,
+		duration: 500,
+		easing: quintOut,
+	};
 </script>
 
-<State {step_size} state_machine={experiment_state_machine} {img_url} />
+{#key State}
+	<div
+		class="absolute min-w-screen min-h-screen p-4"
+		in:fly={flyInConfig}
+		out:fly={flyOutConfig}
+	>
+		<State {step_size} state_machine={experiment_state_machine} {img_url} />
+	</div>
+{/key}

@@ -1,26 +1,20 @@
 <script lang="ts">
-	import { Switch } from "@skeletonlabs/skeleton-svelte";
+	import { mode } from "$lib/mode_state.js";
+	import SunMoon from "@lucide/svelte/icons/sun-moon";
 
-	let checked = $state(false);
-
-	$effect(() => {
-		const mode = localStorage.getItem("mode") || "light";
-		checked = mode === "dark";
-	});
-
-	const onCheckedChange = (event: { checked: boolean }) => {
-		const mode = event.checked ? "dark" : "light";
-		document.documentElement.setAttribute("data-mode", mode);
-		localStorage.setItem("mode", mode);
-		checked = event.checked;
-	};
+	function onClick() {
+		const newMode = mode.current === "dark" ? "light" : "dark";
+		mode.current = newMode;
+	}
 </script>
 
-<svelte:head>
-	<script>
-		const mode = localStorage.getItem("mode") || "light";
-		document.documentElement.setAttribute("data-mode", mode);
-	</script>
-</svelte:head>
-
-<Switch {checked} {onCheckedChange}></Switch>
+<nav>
+	<button
+		class="btn-icon hover:preset-tonal"
+		title="Toggle dark mode."
+		data-lightswitch
+		onclick={onClick}
+	>
+		<SunMoon size={20} />
+	</button>
+</nav>
