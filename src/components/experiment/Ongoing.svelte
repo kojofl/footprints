@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Countdown from "$components/Countdown.svelte";
-    import { fade } from "svelte/transition";
+	import { fade } from "svelte/transition";
 	import type { ExperimentStateProps } from "./types.js";
 
 	const { state_machine, step_size, img_url }: ExperimentStateProps =
@@ -14,6 +14,7 @@
 		if (id) {
 			return;
 		}
+		let last = new Date().getTime();
 		id = setInterval(frame, 5);
 		function frame() {
 			if (progress >= 100) {
@@ -21,7 +22,10 @@
 				progress = 100;
 				state_machine.send("g_fin");
 			} else {
-				progress += step_size;
+				let now = new Date().getTime();
+				let multiplier = (now - last) / 5;
+				progress += step_size * multiplier;
+				last = now;
 			}
 		}
 	}

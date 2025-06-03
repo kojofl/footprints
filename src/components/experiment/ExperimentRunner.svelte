@@ -36,6 +36,8 @@
 		rating: Rating,
 	};
 
+	let start = 0;
+
 	const experiment_state_machine = new FiniteStateMachine<MyStates, MyEvents>(
 		"baseline",
 		{
@@ -55,9 +57,15 @@
 				},
 			},
 			go: {
+				_enter: () => {
+					start = new Date().getTime();
+				},
 				g_fin: "rating",
 				cancel: () => {
 					openState = false;
+				},
+				_exit: () => {
+					console.log((new Date().getTime() - start) / 1000);
 				},
 			},
 			rating: {
