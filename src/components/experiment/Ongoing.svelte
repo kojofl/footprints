@@ -17,15 +17,14 @@
 		let last = new Date().getTime();
 		id = setInterval(frame, 5);
 		function frame() {
+			let now = new Date().getTime();
+			let multiplier = (now - last) / 5;
+			progress += step_size * multiplier;
+			last = now;
 			if (progress >= 100) {
 				clearInterval(id);
 				progress = 100;
 				state_machine.send("g_fin");
-			} else {
-				let now = new Date().getTime();
-				let multiplier = (now - last) / 5;
-				progress += step_size * multiplier;
-				last = now;
 			}
 		}
 	}

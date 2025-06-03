@@ -57,15 +57,9 @@
 				},
 			},
 			go: {
-				_enter: () => {
-					start = new Date().getTime();
-				},
 				g_fin: "rating",
 				cancel: () => {
 					openState = false;
-				},
-				_exit: () => {
-					console.log((new Date().getTime() - start) / 1000);
 				},
 			},
 			rating: {
