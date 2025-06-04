@@ -2,49 +2,47 @@
 	import Countdown from "$components/Countdown.svelte";
 	import { fade } from "svelte/transition";
 	import type { ExperimentStateProps } from "./types.js";
+	import { Channel, invoke } from "@tauri-apps/api/core";
 
 	const { state_machine, step_size, img_url }: ExperimentStateProps =
 		$props();
 	let progress = $state(0);
-	let id: number | undefined = undefined;
 
 	let start_go = $state(false);
 
-	function move() {
-		if (id) {
-			return;
-		}
-		let last = new Date().getTime();
-		id = setInterval(frame, 5);
-		function frame() {
-			let now = new Date().getTime();
-			let multiplier = (now - last) / 5;
-			progress += step_size * multiplier;
-			last = now;
-			if (progress >= 100) {
-				clearInterval(id);
-				progress = 100;
-				state_machine.send("g_fin");
-			}
-		}
-	}
+	async function pause() {}
 
-	function pause() {
-		console.log(id);
-		if (id) {
-			clearInterval(id);
-			id = undefined;
-		}
-	}
+	type LoadingEvent =
+		| {
+				event: "update";
+				data: {
+					val: number;
+				};
+		  }
+		| {
+				event: "finish";
+		  };
+	const onEvent = new Channel<LoadingEvent>();
 
-	function start() {
-		move();
+	onEvent.onmessage = (m) => {
+		if (m.event === "finish") {
+			state_machine.send("g_fin");
+		} else {
+			progress = m.data.val;
+		}
+	};
+
+	async function start() {
+		await invoke("register_loading_bar", {
+			stepSize: step_size,
+			onEvent,
+		});
 	}
 
 	$effect(() => {
 		if (state_machine.current === "go") {
 			start_go = true;
-			move();
+			Promise.resolve(start());
 		}
 	});
 </script>

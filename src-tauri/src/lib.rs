@@ -1,9 +1,11 @@
 mod commands;
 mod image_manager;
+mod loading_manager;
 
 use anyhow::{Context, Result};
-use commands::{get_image, open_calibration};
+use commands::{get_image, open_calibration, register_loading_bar, stop_loading_bar};
 use image_manager::ImageManager;
+use loading_manager::LoadingManager;
 use tauri::async_runtime::spawn;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -22,7 +24,12 @@ pub fn run() -> Result<()> {
         }));
     }
     builder
-        .invoke_handler(tauri::generate_handler![get_image, open_calibration])
+        .invoke_handler(tauri::generate_handler![
+            get_image,
+            register_loading_bar,
+            stop_loading_bar,
+            open_calibration
+        ])
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 window.hide().unwrap();
@@ -84,6 +91,7 @@ async fn setup(app: AppHandle) -> Result<()> {
     println!("Performing really heavy backend setup task...");
     let image_manager = ImageManager::init(app.clone())?;
     app.manage(image_manager);
+    app.manage(LoadingManager::new());
     println!("Backend setup task completed!");
     let splash_window = app.get_webview_window("splashscreen").unwrap();
     let main_window = app.get_webview_window("main").unwrap();
