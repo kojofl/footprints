@@ -79,10 +79,10 @@ pub fn run() -> Result<()> {
 }
 
 async fn setup(app: AppHandle) -> Result<()> {
-    println!("Performing really heavy backend setup task...");
+    log::info!("Performing really heavy backend setup task...");
     let image_manager = ImageManager::init(app.clone())?;
     app.manage(image_manager);
-    println!("Backend setup task completed!");
+    log::info!("Backend setup task completed!");
     let splash_window = app.get_webview_window("splashscreen").unwrap();
     let main_window = app.get_webview_window("main").unwrap();
     splash_window.close().unwrap();
