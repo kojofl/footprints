@@ -1,11 +1,9 @@
 mod commands;
 mod image_manager;
-mod loading_manager;
 
 use anyhow::{Context, Result};
-use commands::{get_image, open_calibration, register_loading_bar, stop_loading_bar};
+use commands::{get_image, open_calibration};
 use image_manager::ImageManager;
-use loading_manager::LoadingManager;
 use tauri::async_runtime::spawn;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -13,7 +11,7 @@ use tauri::{AppHandle, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
-    let mut builder = tauri::Builder::default();
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_log::Builder::new().build());
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
@@ -24,18 +22,12 @@ pub fn run() -> Result<()> {
         }));
     }
     builder
-        .invoke_handler(tauri::generate_handler![
-            get_image,
-            register_loading_bar,
-            stop_loading_bar,
-            open_calibration
-        ])
-        .on_window_event(|window, event| match event {
-            tauri::WindowEvent::CloseRequested { api, .. } => {
+        .invoke_handler(tauri::generate_handler![get_image, open_calibration])
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 window.hide().unwrap();
                 api.prevent_close();
             }
-            _ => {}
         })
         .setup(|app| {
             let app_clone = app.handle().clone();
@@ -70,14 +62,13 @@ pub fn run() -> Result<()> {
                     }
                     _ => panic!("Handler for event: {:?} not implemented", event.id()),
                 })
-                .on_tray_icon_event(|tray, event| match event {
-                    tauri::tray::TrayIconEvent::DoubleClick { .. } => {
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
                         let app = tray.app_handle();
                         let main_window = app.get_webview_window("main").unwrap();
                         main_window.show().unwrap();
                         main_window.set_focus().unwrap();
                     }
-                    _ => {}
                 })
                 .build(app)?;
             Ok(())
@@ -91,7 +82,6 @@ async fn setup(app: AppHandle) -> Result<()> {
     println!("Performing really heavy backend setup task...");
     let image_manager = ImageManager::init(app.clone())?;
     app.manage(image_manager);
-    app.manage(LoadingManager::new());
     println!("Backend setup task completed!");
     let splash_window = app.get_webview_window("splashscreen").unwrap();
     let main_window = app.get_webview_window("main").unwrap();

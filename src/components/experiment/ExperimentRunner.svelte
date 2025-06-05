@@ -77,7 +77,7 @@
 		},
 	);
 
-	const step_size = 100 / (((data.length / (data.speed / 3.6)) * 1000) / 5);
+	const duration = (data.length / (data.speed / 3.6)) * 1000;
 
 	let State = $state(StateMap[experiment_state_machine.current]);
 
@@ -104,6 +104,6 @@
 		in:fly={flyInConfig}
 		out:fly={flyOutConfig}
 	>
-		<State {step_size} state_machine={experiment_state_machine} {img_url} />
+		<State {duration} state_machine={experiment_state_machine} {img_url} />
 	</div>
 {/key}
