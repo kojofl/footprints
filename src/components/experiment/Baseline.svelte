@@ -2,8 +2,7 @@
 	import Countdown from "$components/Countdown.svelte";
 	import type { ExperimentStateProps } from "./types.js";
 
-	const { state_machine, step_size, img_url }: ExperimentStateProps =
-		$props();
+	const { state_machine, ...rest }: ExperimentStateProps = $props();
 	const size = 20;
 	const thickness = 2;
 	const color = "black";
