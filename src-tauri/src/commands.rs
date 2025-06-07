@@ -1,6 +1,9 @@
 use tauri::{ipc::Response, AppHandle, Manager, State};
 
-use crate::image_manager::ImageManager;
+use crate::{
+    image_manager::ImageManager,
+    lsl::{LsLEvent, LsLManager},
+};
 
 #[tauri::command]
 pub fn get_image(state: State<'_, ImageManager>) -> Response {
@@ -13,4 +16,9 @@ pub fn open_calibration(app: AppHandle) {
     calibration_window.show().unwrap();
     calibration_window.unminimize().unwrap();
     calibration_window.set_focus().unwrap();
+}
+
+#[tauri::command]
+pub fn publish_lsl(event: LsLEvent, state: State<'_, LsLManager>) {
+    state.publish_event(event).expect("Lsl worker crashed");
 }

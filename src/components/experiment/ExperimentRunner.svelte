@@ -8,6 +8,7 @@
 	import Baseline from "./Baseline.svelte";
 	import { fly } from "svelte/transition";
 	import { quintOut } from "svelte/easing";
+	import { LsLEvent, publish_event } from "$lib/lsl.js";
 
 	interface Experiment {
 		openState: boolean;
@@ -25,8 +26,9 @@
 		img_url = URL.createObjectURL(blob);
 	});
 
-	onDestroy(() => {
+	onDestroy(async () => {
 		URL.revokeObjectURL(img_url);
+		await publish_event(LsLEvent.Idle);
 	});
 
 	const StateMap = {
@@ -42,13 +44,17 @@
 		"baseline",
 		{
 			baseline: {
+				_enter: async () => {
+					await publish_event(LsLEvent.Baseline);
+				},
 				start: "stimulus",
 				cancel: () => {
 					openState = false;
 				},
 			},
 			stimulus: {
-				_enter: () => {
+				_enter: async () => {
+					await publish_event(LsLEvent.Stimulus);
 					experiment_state_machine.debounce(3000, "s_fin");
 				},
 				s_fin: "go",
@@ -57,7 +63,8 @@
 				},
 			},
 			go: {
-				_enter: () => {
+				_enter: async () => {
+					await publish_event(LsLEvent.Movement);
 					start = new Date().getTime();
 				},
 				g_fin: "rating",
@@ -69,7 +76,9 @@
 				},
 			},
 			rating: {
-				_enter: () => {},
+				_enter: async () => {
+					await publish_event(LsLEvent.Rating);
+				},
 				cancel: () => {
 					openState = false;
 				},
