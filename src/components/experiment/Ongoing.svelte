@@ -2,6 +2,7 @@
 	import Countdown from "$components/Countdown.svelte";
 	import { fade } from "svelte/transition";
 	import type { ExperimentStateProps } from "./types.js";
+	import { onDestroy } from "svelte";
 
 	const { state_machine, duration, img_url }: ExperimentStateProps = $props();
 
@@ -36,6 +37,12 @@
 	$effect(() => {
 		if (tracker) {
 			start();
+		}
+	});
+
+	onDestroy(() => {
+		if (animation) {
+			animation.cancel();
 		}
 	});
 </script>

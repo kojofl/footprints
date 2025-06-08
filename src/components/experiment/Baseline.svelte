@@ -1,15 +1,21 @@
 <script lang="ts">
 	import Countdown from "$components/Countdown.svelte";
+	import { baseline_debounce } from "$lib/state_machine.js";
 	import type { ExperimentStateProps } from "./types.js";
 
-	const { state_machine, ...rest }: ExperimentStateProps = $props();
+	const { state_machine }: ExperimentStateProps = $props();
 	const size = 20;
 	const thickness = 2;
 	const color = "black";
 	let started = $state(false);
 
 	function start_experiment() {
-		state_machine.debounce(2000, "start");
+		baseline_debounce(state_machine).catch((e) => {
+			if (e === "Cancelled") {
+				return;
+			}
+			throw e;
+		});
 		started = true;
 	}
 </script>
