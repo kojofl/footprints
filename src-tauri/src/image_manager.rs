@@ -18,10 +18,7 @@ impl ImageManager {
             .context("Image folder not found")?;
 
         let mut v = Vec::new();
-        for (_, entry) in fs::read_dir(path)
-            .context("Failed to open image folder")?
-            .enumerate()
-        {
+        for entry in fs::read_dir(path).context("Failed to open image folder")? {
             let Ok(entry) = entry else {
                 continue;
             };

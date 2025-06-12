@@ -3,48 +3,39 @@
 	import { fade } from "svelte/transition";
 	import type { ExperimentStateProps } from "./types.js";
 
-	const { state_machine, step_size, img_url }: ExperimentStateProps =
-		$props();
-	let progress = $state(0);
-	let id: number | undefined = undefined;
+	const { state_machine, duration, img_url }: ExperimentStateProps = $props();
 
 	let start_go = $state(false);
+	let tracker: HTMLDivElement | undefined = $state();
+	// svelte-ignore non_reactive_update
+	let animation: Animation;
 
-	function move() {
-		if (id) {
-			return;
-		}
-		let last = new Date().getTime();
-		id = setInterval(frame, 5);
-		function frame() {
-			let now = new Date().getTime();
-			let multiplier = (now - last) / 5;
-			progress += step_size * multiplier;
-			last = now;
-			if (progress >= 100) {
-				clearInterval(id);
-				progress = 100;
-				state_machine.send("g_fin");
-			}
-		}
+	async function pause() {
+		animation.pause();
 	}
 
-	function pause() {
-		console.log(id);
-		if (id) {
-			clearInterval(id);
-			id = undefined;
-		}
+	async function play() {
+		animation.play();
 	}
 
-	function start() {
-		move();
+	async function start() {
+		animation = tracker!.animate([{ right: "100%" }, { right: "0" }], {
+			duration,
+			easing: "linear",
+		});
+		animation.onfinish = () => {
+			state_machine.send("g_fin");
+		};
 	}
 
 	$effect(() => {
 		if (state_machine.current === "go") {
 			start_go = true;
-			move();
+		}
+	});
+	$effect(() => {
+		if (tracker) {
+			start();
 		}
 	});
 </script>
@@ -55,10 +46,16 @@
 <div class="flex flex-col">
 	{#if start_go}
 		<div class="flex container m-auto" transition:fade>
-			<progress class="progress h-8" value={progress} max="100"
-			></progress>
+			<div
+				class="relative h-10 w-full overflow-clip rounded-md bg-surface-300"
+			>
+				<div
+					class="bg-primary-800 absolute h-full w-full"
+					bind:this={tracker}
+				></div>
+			</div>
 		</div>
-		<button onclick={start}>Start</button>
+		<button onclick={play}>Start</button>
 		<button onclick={pause}>Pause</button>
 	{:else}
 		<div class="flex container m-auto justify-center">
