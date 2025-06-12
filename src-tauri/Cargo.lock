@@ -663,6 +663,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmake"
+version = "0.1.54"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7caa3f9de89ddbe2c607f4101924c5abec803763ae9534e4f4d7d8f84aa81f0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1205,6 +1214,7 @@ dependencies = [
  "anyhow",
  "image",
  "log",
+ "lsl",
  "rand 0.9.1",
  "serde",
  "serde_json",
@@ -2313,6 +2323,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fae87c125b03c1d2c0150c90365d7d6bcc53fb73a9acaef207d2d065860f062"
 dependencies = [
  "imgref",
+]
+
+[[package]]
+name = "lsl"
+version = "0.1.2"
+source = "git+https://github.com/kojofl/liblsl-rust#57a833ec97d858f98249140820977b2957641f44"
+dependencies = [
+ "lsl-sys",
+]
+
+[[package]]
+name = "lsl-sys"
+version = "0.1.1"
+source = "git+https://github.com/kojofl/liblsl-rust#57a833ec97d858f98249140820977b2957641f44"
+dependencies = [
+ "cmake",
 ]
 
 [[package]]
