@@ -1,5 +1,4 @@
-use image::ImageReader;
-use std::{fs, io::Cursor};
+use std::fs;
 
 use anyhow::{Context, Result};
 use tauri::{path::BaseDirectory, AppHandle, Manager};
@@ -18,13 +17,11 @@ impl ImageManager {
             .context("Image folder not found")?;
 
         let mut v = Vec::new();
-        for entry in fs::read_dir(path).context("Failed to open image folder")? {
+        for entry in fs::read_dir(&path).context("Failed to open image folder")? {
             let Ok(entry) = entry else {
                 continue;
             };
-            let mut pic = Vec::new();
-            let img = ImageReader::open(entry.path())?.decode()?;
-            img.write_to(&mut Cursor::new(&mut pic), image::ImageFormat::WebP)?;
+            let pic = fs::read(entry.path())?;
             v.push(pic);
         }
 
