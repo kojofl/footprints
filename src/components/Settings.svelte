@@ -100,5 +100,22 @@
 			/>
 			<p>20%</p>
 		</label>
+		<span class="label-text text-lg">Rating categories</span>
+		<label class="flex items-center space-x-2">
+			<input
+				class="checkbox"
+				type="checkbox"
+				bind:checked={Settings.current.rating.valence}
+			/>
+			<p>Valence</p>
+		</label>
+		<label class="flex items-center space-x-2">
+			<input
+				class="checkbox"
+				type="checkbox"
+				bind:checked={Settings.current.rating.arousal}
+			/>
+			<p>Arousal</p>
+		</label>
 	</div>
 </form>

@@ -64,10 +64,10 @@
 			},
 		];
 		const mask: [boolean, string, number][] = [
-			[Settings.current.very_slow, "Very slow", 0.8],
-			[Settings.current.slow, "Slow", 0.9],
-			[Settings.current.fast, "Fast", 1.1],
-			[Settings.current.very_fast, "Very fast", 1.2],
+			[Settings.current.very_slow, "Very slow", 1.2],
+			[Settings.current.slow, "Slow", 1.1],
+			[Settings.current.fast, "Fast", 0.9],
+			[Settings.current.very_fast, "Very fast", 0.8],
 		];
 		for (const el of mask) {
 			if (el[0]) {

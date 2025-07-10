@@ -50,7 +50,7 @@
 <div class="fixation-cross-container">
 	<img src={img_url} alt="stimulus" />
 </div>
-<div class="flex flex-col">
+<div class="flex flex-col -mt-6">
 	{#if start_go}
 		<div class="m-auto">{duration.name}</div>
 		<div class="flex container m-auto" transition:fade>

@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { Rating } from "@skeletonlabs/skeleton-svelte";
 	import type { ExperimentStateProps } from "./types.js";
+	import { Settings } from "$lib/settings_state.js";
 
 	const props: ExperimentStateProps = $props();
 
 	let valence_rating = $state(3);
 	let arousal_rating = $state(3);
-	let step = $state(0);
+	let step = $state(Settings.current.rating.valence ? 0 : 1);
 
 	function onKeyDown(e: KeyboardEvent) {
 		switch (e.key) {
@@ -51,7 +52,7 @@
 				break;
 			}
 			case "Enter": {
-				if (step === 0) {
+				if (step === 0 && Settings.current.rating.arousal) {
 					step++;
 				} else {
 					props.state_machine.send("rated");
@@ -68,7 +69,13 @@
 	{#if step === 0}
 		<form
 			class="mx-auto w-full m-auto flex flex-col"
-			onsubmit={() => step++}
+			onsubmit={() => {
+				if (Settings.current.rating.arousal) {
+					step++;
+				} else {
+					props.state_machine.send("rated");
+				}
+			}}
 		>
 			<label class="m-auto">
 				<span class="">Valence</span>

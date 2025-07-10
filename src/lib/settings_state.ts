@@ -9,6 +9,10 @@ interface Settings {
 	fast: boolean;
 	very_fast: boolean;
 	iterations: number;
+	rating: {
+		arousal: boolean;
+		valence: boolean;
+	}
 }
 
 export const Settings = new PersistedState("settings", default_settings());
@@ -22,6 +26,10 @@ function default_settings(): Settings {
 		slow: false,
 		fast: false,
 		very_fast: false,
-		iterations: 2
+		iterations: 2,
+		rating: {
+			arousal: true,
+			valence: true
+		}
 	}
 }
