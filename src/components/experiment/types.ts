@@ -1,10 +1,12 @@
+import type { MyEvents, MyStates } from "$lib/state_machine.js";
 import { FiniteStateMachine } from "runed";
 
-export type MyStates = "baseline" | "stimulus" | "go" | "rating";
-export type MyEvents = "start" | "s_fin" | "g_fin" | "cancel";
-
 export interface ExperimentStateProps {
-	duration: number;
+	duration: {
+		name: string,
+		time: number
+	};
 	state_machine: FiniteStateMachine<MyStates, MyEvents>;
+	running: boolean;
 	img_url?: string;
 }

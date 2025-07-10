@@ -1,7 +1,7 @@
-import { FiniteStateMachine, useDebounce } from "runed";
+import { FiniteStateMachine, PersistedState, useDebounce } from "runed";
 import { LsLEvent, publish_event } from "./lsl.js";
 export type MyStates = "baseline" | "stimulus" | "go" | "rating";
-export type MyEvents = "start" | "s_fin" | "g_fin" | "cancel";
+export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "cancel";
 
 // We use a custom debounce in favor of the inbuilt state machine debounce so we can cancel
 // the state change when the experiment is stoped so no more lsl events get triggered.
@@ -19,7 +19,12 @@ export const stimulus_debounce = useDebounce(
 	() => 3000
 );
 
-export function create_state_machine(cancel_callback: () => void): FiniteStateMachine<MyStates, MyEvents> {
+// global reactive variable to track the experiment progress
+export const ExperimentIteration = new PersistedState("ex_iter", 0);
+
+export function create_state_machine(cancel_callback: () => void, iterations: number = 2): FiniteStateMachine<MyStates, MyEvents> {
+	// We just created the experiment state machine so we are in the first iteration.
+	ExperimentIteration.current = 0;
 	const experiment_state_machine = new FiniteStateMachine<MyStates, MyEvents>(
 		"baseline",
 		{
@@ -65,6 +70,14 @@ export function create_state_machine(cancel_callback: () => void): FiniteStateMa
 			rating: {
 				_enter: async () => {
 					await publish_event(LsLEvent.Rating);
+				},
+				rated: () => {
+					ExperimentIteration.current += 1;
+					if (ExperimentIteration.current < iterations) {
+						return "baseline"
+					} else {
+						cancel_callback();
+					}
 				},
 				cancel: () => {
 					cancel_callback();
