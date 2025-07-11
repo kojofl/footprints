@@ -21,7 +21,7 @@
 
 	async function start() {
 		animation = tracker!.animate([{ right: "100%" }, { right: "0" }], {
-			duration,
+			duration: duration.time,
 			easing: "linear",
 		});
 		animation.onfinish = () => {
@@ -50,8 +50,9 @@
 <div class="fixation-cross-container">
 	<img src={img_url} alt="stimulus" />
 </div>
-<div class="flex flex-col">
+<div class="flex flex-col -mt-6">
 	{#if start_go}
+		<div class="m-auto">{duration.name}</div>
 		<div class="flex container m-auto" transition:fade>
 			<div
 				class="relative h-10 w-full overflow-clip rounded-md bg-surface-300"
@@ -77,8 +78,8 @@
 		justify-content: center;
 		align-items: center;
 		width: 80%;
-		height: 80vh; /* Or a specific height if you prefer */
-		position: relative; /* Or relative, depending on your layout */
+		height: 80vh;
+		position: relative;
 		top: 10%;
 		left: 10%;
 	}
