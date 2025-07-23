@@ -16,10 +16,6 @@
 	function start_experiment() {
 		openState = true;
 	}
-
-	let speed = $derived(
-		SpeedState.current === Nothing ? undefined : SpeedState.current,
-	);
 </script>
 
 <form
