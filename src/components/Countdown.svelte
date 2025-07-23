@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Settings } from "$lib/settings_state.js";
 	import { onMount } from "svelte";
 	import { quintOut } from "svelte/easing";
 	import { fly } from "svelte/transition";
@@ -48,8 +49,14 @@
 	const countdown = $derived(props.duration - Math.floor(elapsed / 1000));
 </script>
 
-{#key countdown}
-	<div class="absolute text-lg" in:fly={flyInConfig} out:fly={flyOutConfig}>
-		{countdown}s
-	</div>
-{/key}
+{#if Settings.current.show_countdown}
+	{#key countdown}
+		<div
+			class="absolute text-lg"
+			in:fly={flyInConfig}
+			out:fly={flyOutConfig}
+		>
+			{countdown}s
+		</div>
+	{/key}
+{/if}

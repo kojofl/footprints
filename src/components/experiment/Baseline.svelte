@@ -3,11 +3,8 @@
 	import { baseline_debounce } from "$lib/state_machine.js";
 	import type { ExperimentStateProps } from "./types.js";
 
-	const { state_machine }: ExperimentStateProps = $props();
-	const size = 20;
-	const thickness = 2;
-	const color = "black";
-	let started = $state(false);
+	let { running = $bindable(), state_machine }: ExperimentStateProps =
+		$props();
 
 	function start_experiment() {
 		baseline_debounce(state_machine).catch((e) => {
@@ -16,18 +13,27 @@
 			}
 			throw e;
 		});
-		started = true;
+		running = true;
+	}
+
+	if (running) {
+		baseline_debounce(state_machine).catch((e) => {
+			if (e === "Cancelled") {
+				return;
+			}
+			throw e;
+		});
 	}
 </script>
 
 <div class="fixation-cross-container">
 	<div
 		class="fixation-cross"
-		style="--cross-size: {size}px; --cross-thickness: {thickness}px; --cross-color: {color};"
+		style="--cross-size: 20px; --cross-thickness: 2px; --cross-color: black;"
 	></div>
 </div>
 <div class="flex mt-5 container m-auto justify-center">
-	{#if !started}
+	{#if !running}
 		<button
 			type="button"
 			class="btn preset-filled-primary-500"
