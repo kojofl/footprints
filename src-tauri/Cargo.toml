@@ -1,8 +1,8 @@
 [package]
 name = "footprint"
-version = "0.1.0-4"
+version = "0.1.0-5"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["korbinian flietel", "laura gottschling"]
 edition = "2021"
 rust-version = "1.82.0"
 
