@@ -1,18 +1,15 @@
 <script lang="ts">
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
 	import ExperimentRunner from "./experiment/ExperimentRunner.svelte";
-	import { Nothing, SpeedState } from "$lib/speed_state.js";
+	import { SpeedState } from "$lib/speed_state.js";
 	import { LengthState } from "$lib/length_state.js";
 	import { Settings } from "$lib/settings_state.js";
+	
 	let openState = $state(false);
 
 	function start_experiment() {
 		openState = true;
 	}
-
-	let speed = $derived(
-		SpeedState.current === Nothing ? undefined : SpeedState.current,
-	);
 </script>
 
 <form
@@ -60,6 +57,7 @@
 			bind:value={Settings.current.study_name}
 		/>
 	</label>
+
 
 	<button
 		class="btn preset-filled-primary-500 dark:preset-filled-primary-500"

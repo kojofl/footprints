@@ -4,6 +4,7 @@ interface Settings {
 	show_countdown: boolean;
 	subject_name: string;
 	study_name: string;
+	task_instructions: any;
 	very_slow: boolean;
 	slow: boolean;
 	fast: boolean;
@@ -22,6 +23,7 @@ function default_settings(): Settings {
 		show_countdown: false,
 		subject_name: "Subject_1",
 		study_name: "Study",
+		task_instructions: "",
 		very_slow: false,
 		slow: false,
 		fast: false,
