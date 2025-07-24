@@ -4,7 +4,7 @@ interface Settings {
 	show_countdown: boolean;
 	subject_name: string;
 	study_name: string;
-	task_instructions: string;
+	task_instructions: any;
 	very_slow: boolean;
 	slow: boolean;
 	fast: boolean;

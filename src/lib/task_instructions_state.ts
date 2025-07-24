@@ -1,4 +1,3 @@
-import { Settings } from "$lib/settings_state.js";
 import { writable } from "svelte/store";
 
 
@@ -14,7 +13,6 @@ export async function handleTaskInstructionsFile(event: Event) {
 			const text = await file.text();
 
 			TaskInstructions.set(text);
-			Settings.current.task_instructions = text;
 		} else {
 			alert("Please upload a .txt file");
 		}
