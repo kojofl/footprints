@@ -54,6 +54,14 @@
 		NumIterations.current as number,
 	);
 
+	function expandArray(arr: any[], n: number) {
+		console.log(arr, n);
+		const repeats = Math.ceil(n / arr.length);
+		console.log(repeats);
+
+		return arr.flatMap((element) => Array(repeats).fill(element));
+	}
+
 	let durations = $derived.by(() => {
 		let base = [
 			{
@@ -77,14 +85,21 @@
 				});
 			}
 		}
-		return base;
+		let arr = expandArray(base, NumIterations.current as number);
+		for (var i = arr.length - 1; i > 0; i--) {
+			var j = Math.floor(Math.random() * (i + 1));
+			var temp = arr[i];
+			arr[i] = arr[j];
+			arr[j] = temp;
+		}
+		console.log(arr);
+		return arr;
 	});
 	let index = $state(0);
 	watch(
 		() => ExperimentIteration.current,
 		() => {
-			index =
-				Math.round(Math.random() * durations.length) % durations.length;
+			index += 1;
 		},
 	);
 
