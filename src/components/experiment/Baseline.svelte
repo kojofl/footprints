@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Countdown from "$components/Countdown.svelte";
 	import { baseline_debounce } from "$lib/state_machine.js";
+	import { TaskInstructions } from "$lib/task_instructions_state.js";
 	import type { ExperimentStateProps } from "./types.js";
 
 	let { running = $bindable(), state_machine }: ExperimentStateProps =
@@ -26,23 +27,28 @@
 	}
 </script>
 
-<div class="fixation-cross-container">
-	<div
-		class="fixation-cross"
-		style="--cross-size: 20px; --cross-thickness: 2px; --cross-color: black;"
-	></div>
-</div>
-<div class="flex mt-5 container m-auto justify-center">
-	{#if !running}
+{#if running}
+	<div class="fixation-cross-container">
+		<div
+			class="fixation-cross"
+			style="--cross-size: 20px; --cross-thickness: 2px; --cross-color: black;"
+		></div>
+	</div>
+	<div class="flex mt-5 container m-auto justify-center">
+		<Countdown duration={2} />
+	</div>
+{:else}
+	<div class="fixation-cross-container">
+		{$TaskInstructions}
+	</div>
+	<div class="flex mt-5 container m-auto justify-center">
 		<button
 			type="button"
 			class="btn preset-filled-primary-500"
 			onclick={start_experiment}>Go</button
 		>
-	{:else}
-		<Countdown duration={2} />
-	{/if}
-</div>
+	</div>
+{/if}
 
 <style>
 	.fixation-cross-container {
