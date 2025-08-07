@@ -1,5 +1,6 @@
 import { FiniteStateMachine, PersistedState, useDebounce } from "runed";
 import { LsLEvent, publish_event } from "./lsl.js";
+import { invoke } from "@tauri-apps/api/core";
 export type MyStates = "baseline" | "stimulus" | "go" | "rating";
 export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "cancel";
 
@@ -71,11 +72,13 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 				_enter: async () => {
 					await publish_event(LsLEvent.Rating);
 				},
-				rated: () => {
+				rated: (data: any) => {
+					invoke("add_rating", { rating: data });
 					ExperimentIteration.current += 1;
 					if (ExperimentIteration.current < iterations) {
 						return "baseline"
 					} else {
+						// fertig save data
 						cancel_callback();
 					}
 				},

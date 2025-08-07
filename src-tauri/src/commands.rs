@@ -1,13 +1,13 @@
-use tauri::{ipc::Response, AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    image_manager::ImageManager,
+    image_manager::{Image, ImageManager},
     lsl::{LsLEvent, LsLManager},
 };
 
 #[tauri::command]
-pub fn get_image(state: State<'_, ImageManager>) -> Response {
-    Response::new(state.inner().get_rand_image().clone())
+pub fn get_image(state: State<'_, ImageManager>) -> Image {
+    state.inner().get_rand_image().clone()
 }
 
 #[tauri::command]

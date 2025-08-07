@@ -21,20 +21,26 @@
 		length: number;
 	}
 
+	interface Image {
+		name: string;
+		data: any;
+	}
+
 	let { openState = $bindable(), ...data }: Experiment = $props();
 
 	let running = $state(false);
 
-	const img_url = resource(
+	const img_data = resource(
 		() => ExperimentIteration.current,
 		async (_url, _prev_url, { data, onCleanup }) => {
 			onCleanup(() => {
 				URL.revokeObjectURL(data);
 			});
 
-			const img_buffer: ArrayBuffer = await invoke("get_image");
-			const blob = new Blob([img_buffer], { type: "image/webp" });
-			return URL.createObjectURL(blob);
+			const img: Image = await invoke("get_image");
+			let buffer = new Uint8Array(img.data).buffer;
+			const blob = new Blob([buffer], { type: "image/webp" });
+			return { name: img.name, url: URL.createObjectURL(blob) };
 		},
 	);
 
@@ -46,6 +52,7 @@
 	};
 
 	function close() {
+		invoke("save_experiment", { study: Settings.current.study_name });
 		openState = false;
 	}
 
@@ -92,7 +99,6 @@
 			arr[i] = arr[j];
 			arr[j] = temp;
 		}
-		console.log(arr);
 		return arr;
 	});
 	let index = $state(0);
@@ -111,7 +117,7 @@
 
 	onDestroy(async () => {
 		experiment_state_machine.send("cancel");
-		URL.revokeObjectURL(img_url.current!);
+		URL.revokeObjectURL(img_data.current!.url);
 		await publish_event(LsLEvent.Idle);
 	});
 </script>
@@ -134,7 +140,8 @@
 			bind:running
 			duration={durations[index]}
 			state_machine={experiment_state_machine}
-			img_url={img_url.current}
+			img_name={img_data.current?.name}
+			img_url={img_data.current?.url}
 		/>
 	</div>
 {/key}

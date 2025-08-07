@@ -2,18 +2,22 @@
 	import Countdown from "$components/Countdown.svelte";
 	import { baseline_debounce } from "$lib/state_machine.js";
 	import { TaskInstructions } from "$lib/task_instructions_state.js";
+	import { invoke } from "@tauri-apps/api/core";
 	import type { ExperimentStateProps } from "./types.js";
+	import { Settings } from "$lib/settings_state.js";
 
 	let { running = $bindable(), state_machine }: ExperimentStateProps =
 		$props();
 
-	function start_experiment() {
+	async function start_experiment() {
 		baseline_debounce(state_machine).catch((e) => {
 			if (e === "Cancelled") {
 				return;
 			}
 			throw e;
 		});
+		await invoke("init_logger", { name: Settings.current.subject_name });
+
 		running = true;
 	}
 
@@ -45,7 +49,7 @@
 		<button
 			type="button"
 			class="btn preset-filled-primary-500"
-			onclick={start_experiment}>Go</button
+			onclick={async () => await start_experiment()}>Go</button
 		>
 	</div>
 {/if}

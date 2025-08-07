@@ -8,5 +8,6 @@ export interface ExperimentStateProps {
 	};
 	state_machine: FiniteStateMachine<MyStates, MyEvents>;
 	running: boolean;
+	img_name?: string;
 	img_url?: string;
 }

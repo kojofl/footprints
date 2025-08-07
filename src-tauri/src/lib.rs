@@ -1,11 +1,15 @@
 mod commands;
 mod image_manager;
+mod logger;
 mod lsl;
+mod rand;
 
 use anyhow::{Context, Result};
 use commands::{get_image, open_calibration, publish_lsl};
 use image_manager::ImageManager;
+use logger::{add_rating, init_logger, save_experiment, Logger};
 use lsl::LsLManager;
+use std::sync::Mutex;
 use tauri::async_runtime::spawn;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -27,7 +31,10 @@ pub fn run() -> Result<()> {
         .invoke_handler(tauri::generate_handler![
             get_image,
             open_calibration,
-            publish_lsl
+            publish_lsl,
+            init_logger,
+            add_rating,
+            save_experiment
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -89,6 +96,7 @@ async fn setup(app: AppHandle) -> Result<()> {
     let image_manager = ImageManager::init(app.clone())?;
     app.manage(image_manager);
     app.manage(LsLManager::new());
+    app.manage(Mutex::new(Logger::default()));
     log::info!("Backend setup task completed!");
     let splash_window = app.get_webview_window("splashscreen").unwrap();
     let main_window = app.get_webview_window("main").unwrap();
