@@ -2,7 +2,7 @@ use std::fs;
 
 use crate::rand::Alias;
 use anyhow::{Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{path::BaseDirectory, AppHandle, Manager};
 
 pub struct ImageManager {
@@ -17,9 +17,17 @@ struct Quadrants {
     high_high: Vec<Image>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Magnitude {
+    Low,
+    High,
+}
+
 #[derive(Serialize, Clone)]
 pub struct Image {
     name: String,
+    valence: Magnitude,
+    arousal: Magnitude,
     data: Vec<u8>,
 }
 
@@ -40,6 +48,8 @@ impl ImageManager {
             let pic = fs::read(entry.path())?;
             low_low.push(Image {
                 name: entry.file_name().to_string_lossy().to_string(),
+                valence: Magnitude::Low,
+                arousal: Magnitude::Low,
                 data: pic,
             });
         }
@@ -53,6 +63,8 @@ impl ImageManager {
             let pic = fs::read(entry.path())?;
             low_high.push(Image {
                 name: entry.file_name().to_string_lossy().to_string(),
+                valence: Magnitude::Low,
+                arousal: Magnitude::High,
                 data: pic,
             });
         }
@@ -66,6 +78,8 @@ impl ImageManager {
             let pic = fs::read(entry.path())?;
             high_low.push(Image {
                 name: entry.file_name().to_string_lossy().to_string(),
+                valence: Magnitude::High,
+                arousal: Magnitude::Low,
                 data: pic,
             });
         }
@@ -79,6 +93,8 @@ impl ImageManager {
             let pic = fs::read(entry.path())?;
             high_high.push(Image {
                 name: entry.file_name().to_string_lossy().to_string(),
+                valence: Magnitude::High,
+                arousal: Magnitude::High,
                 data: pic,
             });
         }
