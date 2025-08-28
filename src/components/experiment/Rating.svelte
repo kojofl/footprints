@@ -8,10 +8,10 @@
 	const props: ExperimentStateProps = $props();
 
 	let valence_rating = $state(
-		Settings.current.rating.valence ? 3 : undefined,
+		Settings.current.rating.valence ? 4 : undefined,
 	);
 	let arousal_rating = $state(
-		Settings.current.rating.arousal ? 3 : undefined,
+		Settings.current.rating.arousal ? 4 : undefined,
 	);
 	let step = $state(Settings.current.rating.valence ? 0 : 1);
 
@@ -50,6 +50,22 @@
 				break;
 			}
 			case "5": {
+				if (step === 0) {
+					valence_rating = Number(e.key);
+				} else {
+					arousal_rating = Number(e.key);
+				}
+				break;
+			}
+			case "6": {
+				if (step === 0) {
+					valence_rating = Number(e.key);
+				} else {
+					arousal_rating = Number(e.key);
+				}
+				break;
+			}
+			case "7": {
 				if (step === 0) {
 					valence_rating = Number(e.key);
 				} else {
@@ -96,8 +112,10 @@
 				<span class="">Valence</span>
 				<Rating
 					value={valence_rating}
+					count={7}
 					onValueChange={(e) => (valence_rating = e.value)}
-				/>
+				
+					/>
 			</label>
 			<button class="btn" type="submit">Submit</button>
 		</form>
@@ -110,6 +128,7 @@
 				<span class="">Arousal</span>
 				<Rating
 					value={arousal_rating}
+					count={7}
 					onValueChange={(e) => (arousal_rating = e.value)}
 				/>
 			</label>
