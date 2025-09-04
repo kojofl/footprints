@@ -32,7 +32,7 @@ pub struct Image {
 }
 
 impl ImageManager {
-    pub fn init(app: AppHandle) -> Result<Self> {
+    pub fn init(app: &AppHandle) -> Result<Self> {
         let path = app
             .path()
             .resolve("resources/images/", BaseDirectory::Resource)
