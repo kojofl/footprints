@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Ongoing from "./Ongoing.svelte";
-	import Rating from "./Rating.svelte";
+	import Ongoing from "$components/experiment/Ongoing.svelte";
+	import Rating from "$components/experiment/Rating.svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import { onDestroy } from "svelte";
-	import Baseline from "./Baseline.svelte";
+	import Baseline from "$components/experiment/Baseline.svelte";
 	import { fly } from "svelte/transition";
 	import { quintOut } from "svelte/easing";
 	import { LsLEvent, publish_event } from "$lib/lsl.js";

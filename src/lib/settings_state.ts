@@ -10,6 +10,10 @@ interface Settings {
 	fast: boolean;
 	very_fast: boolean;
 	iterations: number;
+	baseline_duration: number;
+	baseline_jitter: number;
+	stimulus_duration: number;
+	stimulus_jitter: number;
 	rating: {
 		arousal: boolean;
 		valence: boolean;
@@ -29,6 +33,10 @@ function default_settings(): Settings {
 		fast: false,
 		very_fast: false,
 		iterations: 2,
+		baseline_duration: 2,
+		baseline_jitter: 0,
+		stimulus_duration: 2,
+		stimulus_jitter: 0,
 		rating: {
 			arousal: true,
 			valence: true

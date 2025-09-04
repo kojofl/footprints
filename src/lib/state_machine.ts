@@ -1,24 +1,10 @@
 import { FiniteStateMachine, PersistedState, useDebounce } from "runed";
 import { LsLEvent, publish_event } from "./lsl.js";
 import { invoke } from "@tauri-apps/api/core";
-export type MyStates = "baseline" | "stimulus" | "go" | "rating";
+import { baseline_debounce, stimulus_debounce } from "./debounce.js";
+import { Settings } from "./settings_state.js";
+export type MyStates = "baseline" | "stimulus" | "go" | "rating" | "canceled";
 export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "cancel";
-
-// We use a custom debounce in favor of the inbuilt state machine debounce so we can cancel
-// the state change when the experiment is stoped so no more lsl events get triggered.
-export const baseline_debounce = useDebounce(
-	(sm: FiniteStateMachine<MyStates, MyEvents>) => {
-		sm.send("start");
-	},
-	() => 2000
-);
-
-export const stimulus_debounce = useDebounce(
-	(sm: FiniteStateMachine<MyStates, MyEvents>) => {
-		sm.send("s_fin");
-	},
-	() => 3000
-);
 
 // global reactive variable to track the experiment progress
 export const ExperimentIteration = new PersistedState("ex_iter", 0);
@@ -37,24 +23,22 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 					return "stimulus";
 				},
 				cancel: () => {
-					baseline_debounce.cancel();
 					cancel_callback();
+					return "canceled";
 				},
 			},
 			stimulus: {
 				_enter: async () => {
 					await publish_event(LsLEvent.Stimulus);
-					stimulus_debounce(experiment_state_machine).catch((e) => {
-						if (e === "Cancelled") {
-							return;
-						}
-						throw e;
-					});
+					const max = Settings.current.stimulus_duration + Settings.current.stimulus_jitter;
+					const min = Settings.current.stimulus_duration - Settings.current.stimulus_jitter;
+					let random = Math.random() * (max - min + 1) + min;
+					stimulus_debounce(experiment_state_machine, random * 1000)
 				},
 				s_fin: "go",
 				cancel: () => {
-					stimulus_debounce.cancel();
 					cancel_callback();
+					return "canceled";
 				},
 			},
 			go: {
@@ -64,6 +48,7 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 				g_fin: "rating",
 				cancel: () => {
 					cancel_callback();
+					return "canceled";
 				},
 				_exit: () => {
 				},
@@ -86,6 +71,11 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 					cancel_callback();
 				},
 			},
+			// This is used to pseudo cancel the debounce since those are now created on the fly 
+			// there is no trivial way of canceling them. To work around this we now have the caneceled
+			// state. This state is only ever used when the experiment has been canceled and intentionally
+			// has no event handlers. This leads to all ongoing debounces to fire without effect.
+			canceled: {}
 		},
 	);
 	return experiment_state_machine
