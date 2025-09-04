@@ -48,14 +48,13 @@
 </script>
 
 <div class="fixation-cross-container">
-	<img src={img_url} alt="stimulus" />
+	<img style="width: 55vw;" src={img_url} alt="stimulus" />
 </div>
-<div class="flex flex-col -mt-6">
+<div class="flex flex-col mt-6">
 	{#if start_go}
-		<div class="m-auto">{duration.name}</div>
 		<div class="flex container m-auto" transition:fade>
 			<div
-				class="relative h-10 w-full overflow-clip rounded-md bg-surface-300"
+				class="relative h-15 w-full overflow-clip rounded-md bg-surface-300"
 			>
 				<div
 					class="bg-primary-800 absolute h-full w-full"
