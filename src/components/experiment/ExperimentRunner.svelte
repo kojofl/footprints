@@ -23,6 +23,8 @@
 
 	interface Image {
 		name: string;
+		valence: "Low" | "High";
+		arousal: "Low" | "High";
 		data: any;
 	}
 
@@ -40,7 +42,12 @@
 			const img: Image = await invoke("get_image");
 			let buffer = new Uint8Array(img.data).buffer;
 			const blob = new Blob([buffer], { type: "image/webp" });
-			return { name: img.name, url: URL.createObjectURL(blob) };
+			return {
+				name: img.name,
+				valence: img.valence,
+				arousal: img.arousal,
+				url: URL.createObjectURL(blob),
+			};
 		},
 	);
 
@@ -140,6 +147,8 @@
 			bind:running
 			duration={durations[index]}
 			state_machine={experiment_state_machine}
+			img_valence={img_data.current?.valence}
+			img_arousal={img_data.current?.arousal}
 			img_name={img_data.current?.name}
 			img_url={img_data.current?.url}
 		/>

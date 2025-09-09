@@ -74,6 +74,8 @@
 						(props.duration.time / 1000)) *
 					3.6,
 				name: props.img_name,
+				n_valence: props.img_valence,
+				n_arousal: props.img_arousal,
 				valence: valence_rating,
 				arousal: arousal_rating,
 			});

@@ -8,6 +8,8 @@ export interface ExperimentStateProps {
 	};
 	state_machine: FiniteStateMachine<MyStates, MyEvents>;
 	running: boolean;
+	img_valence?: "Low" | "High";
+	img_arousal?: "Low" | "High";
 	img_name?: string;
 	img_url?: string;
 }
