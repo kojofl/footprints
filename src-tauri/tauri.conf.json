@@ -14,15 +14,11 @@
       {
 		"label": "main",
         "title": "footprint",
-        "width": 800,
-        "height": 600,
-        "minWidth": 800,
-        "minHeight": 600,
-		"visible": false
-      },
-	  {
-        "label": "splashscreen",
-        "url": "/splashscreen"
+		"url": "/experiment",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 1280,
+        "minHeight": 720
       },
 	  {
         "label": "calibration",

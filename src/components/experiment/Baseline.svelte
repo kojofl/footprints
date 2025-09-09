@@ -1,33 +1,26 @@
 <script lang="ts">
 	import Countdown from "$components/Countdown.svelte";
-	import { baseline_debounce } from "$lib/state_machine.js";
-	import { TaskInstructions } from "$lib/task_instructions_state.js";
+	import { baseline_debounce } from "$lib/debounce.js";
 	import { invoke } from "@tauri-apps/api/core";
 	import type { ExperimentStateProps } from "./types.js";
 	import { Settings } from "$lib/settings_state.js";
 
 	let { running = $bindable(), state_machine }: ExperimentStateProps =
 		$props();
-
+	const max =
+		Settings.current.stimulus_duration + Settings.current.stimulus_jitter;
+	const min =
+		Settings.current.stimulus_duration - Settings.current.stimulus_jitter;
+	let random = Math.random() * (max - min + 1) + min;
 	async function start_experiment() {
-		baseline_debounce(state_machine).catch((e) => {
-			if (e === "Cancelled") {
-				return;
-			}
-			throw e;
-		});
+		baseline_debounce(state_machine, random * 1000);
 		await invoke("init_logger", { name: Settings.current.subject_name });
 
 		running = true;
 	}
 
 	if (running) {
-		baseline_debounce(state_machine).catch((e) => {
-			if (e === "Cancelled") {
-				return;
-			}
-			throw e;
-		});
+		baseline_debounce(state_machine, random * 1000);
 	}
 </script>
 
@@ -42,9 +35,7 @@
 		<Countdown duration={2} />
 	</div>
 {:else}
-	<div class="fixation-cross-container">
-		{$TaskInstructions}
-	</div>
+	<div class="fixation-cross-container">Todo: Instr text</div>
 	<div class="flex mt-5 container m-auto justify-center">
 		<button
 			type="button"

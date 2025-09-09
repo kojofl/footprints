@@ -10,7 +10,6 @@ use image_manager::ImageManager;
 use logger::{add_rating, init_logger, save_experiment, Logger};
 use lsl::LsLManager;
 use std::sync::Mutex;
-use tauri::async_runtime::spawn;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
@@ -43,13 +42,10 @@ pub fn run() -> Result<()> {
             }
         })
         .setup(|app| {
-            let app_clone = app.handle().clone();
-            spawn(async move {
-                if let Err(e) = setup(app_clone.clone()).await {
-                    println!("{:?}", e);
-                    app_clone.exit(1);
-                }
-            });
+            if let Err(e) = setup_managed_state(app.handle()) {
+                println!("{:?}", e);
+                app.handle().exit(1);
+            }
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let open_c = MenuItem::with_id(app, "calibration", "Calibration", true, None::<&str>)?;
             let open_i = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
@@ -91,16 +87,10 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-async fn setup(app: AppHandle) -> Result<()> {
-    log::info!("Performing really heavy backend setup task...");
-    let image_manager = ImageManager::init(app.clone())?;
+fn setup_managed_state(app: &AppHandle) -> Result<()> {
+    let image_manager = ImageManager::init(app)?;
     app.manage(image_manager);
     app.manage(LsLManager::new());
     app.manage(Mutex::new(Logger::default()));
-    log::info!("Backend setup task completed!");
-    let splash_window = app.get_webview_window("splashscreen").unwrap();
-    let main_window = app.get_webview_window("main").unwrap();
-    splash_window.close().unwrap();
-    main_window.show().unwrap();
     Ok(())
 }
