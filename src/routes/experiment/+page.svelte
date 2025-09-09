@@ -12,31 +12,6 @@
 	function start_experiment() {
 		openState = true;
 	}
-
-	// Variable Debounce concept:
-	// We can change the debounce to something similar
-	// to implement variable debounces
-	const d = async (i: number) => {
-		let time = Math.random() * 1000;
-		const d = useDebounce(
-			(i: number) => {
-				console.log(new Date().getTime() - i);
-			},
-			() => time,
-		);
-		await d(i);
-	};
-
-	async function test() {
-		await d(new Date().getTime());
-		await d(new Date().getTime());
-		await d(new Date().getTime());
-		await d(new Date().getTime());
-		await d(new Date().getTime());
-		await d(new Date().getTime());
-	}
-
-	test();
 </script>
 
 <Navbar />
@@ -86,7 +61,6 @@
 				bind:value={Settings.current.study_name}
 			/>
 		</label>
-
 
 		<button
 			class="btn preset-filled-primary-500 dark:preset-filled-primary-500"
