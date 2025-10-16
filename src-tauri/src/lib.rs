@@ -5,7 +5,7 @@ mod lsl;
 mod rand;
 
 use anyhow::{Context, Result};
-use commands::{get_image, open_calibration, publish_lsl};
+use commands::{get_image, open_calibration, play_sound, publish_lsl};
 use image_manager::ImageManager;
 use logger::{add_rating, init_logger, save_experiment, Logger};
 use lsl::LsLManager;
@@ -33,7 +33,8 @@ pub fn run() -> Result<()> {
             publish_lsl,
             init_logger,
             add_rating,
-            save_experiment
+            save_experiment,
+            play_sound
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -89,7 +90,7 @@ pub fn run() -> Result<()> {
 
 fn setup_managed_state(app: &AppHandle) -> Result<()> {
     let image_manager = ImageManager::init(app)?;
-    app.manage(image_manager);
+    app.manage(Mutex::new(image_manager));
     app.manage(LsLManager::new());
     app.manage(Mutex::new(Logger::default()));
     Ok(())

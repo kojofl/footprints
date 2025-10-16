@@ -3,6 +3,8 @@
 	import { fade } from "svelte/transition";
 	import type { ExperimentStateProps } from "./types.js";
 	import { onDestroy } from "svelte";
+	import { invoke } from "@tauri-apps/api/core";
+	import { Settings } from "$lib/settings_state.js";
 
 	const { state_machine, duration, img_url }: ExperimentStateProps = $props();
 
@@ -20,6 +22,9 @@
 	}
 
 	async function start() {
+		if (Settings.current.sound_cue) {
+			await invoke("play_sound");
+		}
 		animation = tracker!.animate([{ right: "100%" }, { right: "0" }], {
 			duration: duration.time,
 			easing: "linear",
@@ -52,18 +57,16 @@
 </div>
 <div class="flex flex-col mt-6">
 	{#if start_go}
-		<div class="flex container m-auto" transition:fade>
+		<div class="flex container m-auto">
 			<div
-				class="relative h-15 w-full overflow-clip rounded-md bg-surface-300"
+				class="relative h-15 w-full overflow-clip rounded-md bg-lime-100"
 			>
 				<div
-					class="bg-primary-800 absolute h-full w-full"
+					class="bg-lime-600 absolute h-full w-full"
 					bind:this={tracker}
 				></div>
 			</div>
 		</div>
-		<button onclick={play}>Start</button>
-		<button onclick={pause}>Pause</button>
 	{:else}
 		<div class="flex container m-auto justify-center">
 			<Countdown duration={3} />
