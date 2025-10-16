@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Ongoing from "./Ongoing.svelte";
-	import Rating from "./Rating.svelte";
+	import Ongoing from "$components/experiment/Ongoing.svelte";
+	import Rating from "$components/experiment/Rating.svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import { onDestroy } from "svelte";
-	import Baseline from "./Baseline.svelte";
+	import Baseline from "$components/experiment/Baseline.svelte";
 	import { fly } from "svelte/transition";
 	import { quintOut } from "svelte/easing";
 	import { LsLEvent, publish_event } from "$lib/lsl.js";
@@ -23,6 +23,8 @@
 
 	interface Image {
 		name: string;
+		valence: "Low" | "High";
+		arousal: "Low" | "High";
 		data: any;
 	}
 
@@ -37,10 +39,17 @@
 				URL.revokeObjectURL(data);
 			});
 
-			const img: Image = await invoke("get_image");
+			const img: Image = await invoke("get_image", {
+				init: NumIterations.current === 0,
+			});
 			let buffer = new Uint8Array(img.data).buffer;
 			const blob = new Blob([buffer], { type: "image/webp" });
-			return { name: img.name, url: URL.createObjectURL(blob) };
+			return {
+				name: img.name,
+				valence: img.valence,
+				arousal: img.arousal,
+				url: URL.createObjectURL(blob),
+			};
 		},
 	);
 
@@ -106,6 +115,9 @@
 		() => ExperimentIteration.current,
 		() => {
 			index += 1;
+			if (index >= durations.length) {
+				experiment_state_machine.send("cancel");
+			}
 		},
 	);
 
@@ -140,6 +152,8 @@
 			bind:running
 			duration={durations[index]}
 			state_machine={experiment_state_machine}
+			img_valence={img_data.current?.valence}
+			img_arousal={img_data.current?.arousal}
 			img_name={img_data.current?.name}
 			img_url={img_data.current?.url}
 		/>

@@ -2,6 +2,7 @@ import { PersistedState } from "runed";
 
 interface Settings {
 	show_countdown: boolean;
+	sound_cue: boolean;
 	subject_name: string;
 	study_name: string;
 	task_instructions: any;
@@ -10,6 +11,10 @@ interface Settings {
 	fast: boolean;
 	very_fast: boolean;
 	iterations: number;
+	baseline_duration: number;
+	baseline_jitter: number;
+	stimulus_duration: number;
+	stimulus_jitter: number;
 	rating: {
 		arousal: boolean;
 		valence: boolean;
@@ -21,6 +26,7 @@ export const Settings = new PersistedState("settings", default_settings());
 function default_settings(): Settings {
 	return {
 		show_countdown: false,
+		sound_cue: false,
 		subject_name: "Subject_1",
 		study_name: "Study",
 		task_instructions: "",
@@ -29,6 +35,10 @@ function default_settings(): Settings {
 		fast: false,
 		very_fast: false,
 		iterations: 2,
+		baseline_duration: 2,
+		baseline_jitter: 0,
+		stimulus_duration: 2,
+		stimulus_jitter: 0,
 		rating: {
 			arousal: true,
 			valence: true

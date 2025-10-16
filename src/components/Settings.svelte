@@ -5,12 +5,8 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { NumIterations } from "$lib/num_iter_state.js";
-	import {
-		TaskInstructions,
-		handleTaskInstructionsFile,
-		triggerFileUpload,
-	} from "$lib/task_instructions_state.js";
 	import { watch } from "runed";
+	import { Slider } from "@skeletonlabs/skeleton-svelte";
 
 	let { openState = $bindable() } = $props();
 
@@ -31,11 +27,6 @@
 	function save() {
 		openState = false;
 	}
-
-	function clearInfoFile(event: any) {
-		event.preventDefault();
-		Settings.current.task_instructions = "";
-	}
 </script>
 
 <div class="flex justify-between">
@@ -43,125 +34,168 @@
 	<Lightswitch />
 </div>
 
-<form class="space-y-2" onsubmit={save}>
-	<div class="space-y-2">
-		<span class="label-text text-lg">Some on/off setting:</span>
-		<label class="flex items-center space-x-2">
-			<input
-				class="checkbox"
-				type="checkbox"
-				bind:checked={Settings.current.show_countdown}
-			/>
-			<p>Show countdown</p>
-		</label>
-
-		<label class="label">
-			<span class="label-text">Walking Speed in km/h</span>
-			<input
-				type="number"
-				class="input"
-				placeholder="Speed"
-				step="0.01"
-				required
-				bind:value={SpeedState.current}
-			/>
-		</label>
-		<button type="button" onclick={async () => await calibrate()}
-			>Calibrate Speed</button
-		>
-		<label class="label">
-			<span class="label-text">Track length in m</span>
-			<input
-				type="number"
-				class="input"
-				placeholder="Length in m"
-				required
-				bind:value={LengthState.current}
-			/>
-		</label>
-		<label class="label">
-			<span class="label-text">Experiment Iterations</span>
-			<input
-				type="number"
-				class="input"
-				placeholder="Number of Iterations"
-				step="1"
-				required
-				bind:value={NumIterations.current}
-			/>
-		</label>
-		<span class="label-text text-lg">Speed variations</span>
-		<label class="flex items-center space-x-2">
-			<input
-				class="checkbox"
-				type="checkbox"
-				bind:checked={Settings.current.very_slow}
-			/>
-			<p>-20%</p>
-		</label>
-		<label class="flex items-center space-x-2">
-			<input
-				class="checkbox"
-				type="checkbox"
-				bind:checked={Settings.current.slow}
-			/>
-			<p>-10%</p>
-		</label>
-		<label class="flex items-center space-x-2">
-			<input
-				class="checkbox"
-				type="checkbox"
-				bind:checked={Settings.current.fast}
-			/>
-			<p>10%</p>
-		</label>
-		<label class="flex items-center space-x-2">
-			<input
-				class="checkbox"
-				type="checkbox"
-				bind:checked={Settings.current.very_fast}
-			/>
-			<p>20%</p>
-		</label>
-		<span class="label-text text-lg">Rating categories</span>
-		<label class="flex items-center space-x-2">
-			<input
-				class="checkbox"
-				type="checkbox"
-				bind:checked={Settings.current.rating.valence}
-			/>
-			<p>Valence</p>
-		</label>
-		<label class="flex items-center space-x-2">
-			<input
-				class="checkbox"
-				type="checkbox"
-				bind:checked={Settings.current.rating.arousal}
-			/>
-			<p>Arousal</p>
-		</label>
-		<label class="label">
-			<span class="label-text text-lg">Task Instructions</span>
-			<div class="flex gap-2 w-full">
+<!--TODO: scrolling-->
+<div class="flex flex-col h-screen overflow-scroll">
+	<form class="flex-grow space-y-2" onsubmit={save}>
+		<div class="space-y-2">
+			<span class="label-text text-lg">Some on/off setting:</span>
+			<label class="flex items-center space-x-2">
 				<input
-					type="file"
-					accept=".txt"
-					bind:files
-					onchange={handleTaskInstructionsFile}
-					hidden
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.show_countdown}
 				/>
-			</div>
-			<div class="flex justify-between">
-				<p>Choose file</p>
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-				<p onclick={clearInfoFile}>X</p>
-			</div>
-			<p>
-				{Settings.current.task_instructions == ""
-					? "No file selected"
-					: Settings.current.task_instructions}
-			</p>
-		</label>
-	</div>
-</form>
+				<p>Show countdown</p>
+			</label>
+
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.sound_cue}
+				/>
+				<p>Sound cue</p>
+			</label>
+
+			<label class="label">
+				<span class="label-text">Walking Speed in km/h</span>
+				<input
+					type="number"
+					class="input"
+					placeholder="Speed"
+					step="0.01"
+					required
+					bind:value={SpeedState.current}
+				/>
+			</label>
+			<button type="button" onclick={async () => await calibrate()}
+				>Calibrate Speed</button
+			>
+			<label class="label">
+				<span class="label-text">Track length in m</span>
+				<input
+					type="number"
+					class="input"
+					placeholder="Length in m"
+					required
+					bind:value={LengthState.current}
+				/>
+			</label>
+			<label class="label">
+				<span class="label-text">Experiment Iterations</span>
+				<input
+					type="number"
+					class="input"
+					placeholder="Number of Iterations"
+					step="1"
+					required
+					bind:value={NumIterations.current}
+				/>
+			</label>
+			<span class="label-text text-lg">Speed variations</span>
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.very_slow}
+				/>
+				<p>-20%</p>
+			</label>
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.slow}
+				/>
+				<p>-10%</p>
+			</label>
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.fast}
+				/>
+				<p>10%</p>
+			</label>
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.very_fast}
+				/>
+				<p>20%</p>
+			</label>
+			<span class="label-text text-lg">Rating categories</span>
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.rating.valence}
+				/>
+				<p>Valence</p>
+			</label>
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.rating.arousal}
+				/>
+				<p>Arousal</p>
+			</label>
+			<span class="label-text text-lg">Baseline</span>
+			<label class="flex items-center space-x-2">
+				<Slider
+					value={[Settings.current.baseline_duration]}
+					onValueChange={(e) => (Settings.current.baseline_duration = e.value[0])}
+					markers={[2, 3, 4, 5]}
+					min={2}
+					max={5}
+				/>
+				<p>Duration</p>
+			</label>
+			<label class="flex items-center space-x-2">
+				<Slider
+					value={[Settings.current.baseline_jitter]}
+					onValueChange={(e) => {
+						(Settings.current.baseline_jitter = e.value[0])}
+						}
+					markers={[
+						0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0,
+					]}
+					min={0.0}
+					max={2.0}
+					step={0.2}
+					mark={mark}
+				/>
+				<p>Jitter</p>
+			</label>
+			<span class="label-text text-lg">Stimulus</span>
+			<label class="flex items-center space-x-2">
+				<Slider
+					value={[Settings.current.stimulus_duration]}
+					onValueChange={(e) => (Settings.current.stimulus_duration = e.value[0])}
+					markers={[2, 3, 4, 5]}
+					min={2}
+					max={5}
+				/>
+				<p>Duration</p>
+			</label>
+			<label class="flex items-center space-x-2">
+				<Slider
+					value={[Settings.current.stimulus_jitter]}
+					onValueChange={(e) => (Settings.current.stimulus_jitter = e.value[0])}
+					markers={[
+						0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0,
+					]}
+					min={0.0}
+					max={2.0}
+					step={0.2}
+					mark={mark}
+				/>
+				<p>Jitter</p>
+			</label>
+		</div>
+	</form>
+</div>
+
+{#snippet mark(marker: number)} {marker.toFixed(1)} {/snippet}

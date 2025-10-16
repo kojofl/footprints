@@ -5,12 +5,11 @@ mod lsl;
 mod rand;
 
 use anyhow::{Context, Result};
-use commands::{get_image, open_calibration, publish_lsl};
+use commands::{get_image, open_calibration, play_sound, publish_lsl};
 use image_manager::ImageManager;
 use logger::{add_rating, init_logger, save_experiment, Logger};
 use lsl::LsLManager;
 use std::sync::Mutex;
-use tauri::async_runtime::spawn;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
@@ -34,7 +33,8 @@ pub fn run() -> Result<()> {
             publish_lsl,
             init_logger,
             add_rating,
-            save_experiment
+            save_experiment,
+            play_sound
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -43,13 +43,10 @@ pub fn run() -> Result<()> {
             }
         })
         .setup(|app| {
-            let app_clone = app.handle().clone();
-            spawn(async move {
-                if let Err(e) = setup(app_clone.clone()).await {
-                    println!("{:?}", e);
-                    app_clone.exit(1);
-                }
-            });
+            if let Err(e) = setup_managed_state(app.handle()) {
+                println!("{:?}", e);
+                app.handle().exit(1);
+            }
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let open_c = MenuItem::with_id(app, "calibration", "Calibration", true, None::<&str>)?;
             let open_i = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
@@ -91,16 +88,10 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-async fn setup(app: AppHandle) -> Result<()> {
-    log::info!("Performing really heavy backend setup task...");
-    let image_manager = ImageManager::init(app.clone())?;
-    app.manage(image_manager);
+fn setup_managed_state(app: &AppHandle) -> Result<()> {
+    let image_manager = ImageManager::init(app)?;
+    app.manage(Mutex::new(image_manager));
     app.manage(LsLManager::new());
     app.manage(Mutex::new(Logger::default()));
-    log::info!("Backend setup task completed!");
-    let splash_window = app.get_webview_window("splashscreen").unwrap();
-    let main_window = app.get_webview_window("main").unwrap();
-    splash_window.close().unwrap();
-    main_window.show().unwrap();
     Ok(())
 }
