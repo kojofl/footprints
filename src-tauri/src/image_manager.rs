@@ -2,7 +2,6 @@ use std::fs;
 
 use crate::rand::Alias;
 use anyhow::{Context, Result};
-use rand::seq::{index, IndexedRandom};
 use serde::{Deserialize, Serialize};
 use tauri::{path::BaseDirectory, AppHandle, Manager};
 
