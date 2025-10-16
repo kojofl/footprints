@@ -39,7 +39,9 @@
 				URL.revokeObjectURL(data);
 			});
 
-			const img: Image = await invoke("get_image");
+			const img: Image = await invoke("get_image", {
+				init: NumIterations.current === 0,
+			});
 			let buffer = new Uint8Array(img.data).buffer;
 			const blob = new Blob([buffer], { type: "image/webp" });
 			return {
@@ -113,6 +115,9 @@
 		() => ExperimentIteration.current,
 		() => {
 			index += 1;
+			if (index >= durations.length) {
+				experiment_state_machine.send("cancel");
+			}
 		},
 	);
 

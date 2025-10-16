@@ -45,7 +45,8 @@
       "icons/icon.ico"
     ],
 	"resources": {
-		"../static/images/": "resources/images/"
+		"../static/images/": "resources/images/",
+		"../static/music/": "resources/music/"
 	}
   }
 }

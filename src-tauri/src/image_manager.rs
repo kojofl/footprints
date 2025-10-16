@@ -8,6 +8,7 @@ use tauri::{path::BaseDirectory, AppHandle, Manager};
 pub struct ImageManager {
     dist: Alias<4>,
     images: Quadrants,
+    state: State,
 }
 
 struct Quadrants {
@@ -15,6 +16,55 @@ struct Quadrants {
     low_high: Vec<Image>,
     high_low: Vec<Image>,
     high_high: Vec<Image>,
+}
+
+struct State {
+    ll: usize,
+    lh: usize,
+    hl: usize,
+    hh: usize,
+    valid_idx_ll: Vec<usize>,
+    valid_idx_lh: Vec<usize>,
+    valid_idx_hl: Vec<usize>,
+    valid_idx_hh: Vec<usize>,
+}
+
+impl State {
+    fn new(q: &Quadrants) -> Self {
+        let ll = q.low_low.len();
+        let lh = q.low_high.len();
+        let hl = q.high_low.len();
+        let hh = q.high_high.len();
+        Self {
+            ll,
+            lh,
+            hl,
+            hh,
+            valid_idx_ll: (0..ll).collect(),
+            valid_idx_lh: (0..lh).collect(),
+            valid_idx_hl: (0..hl).collect(),
+            valid_idx_hh: (0..hh).collect(),
+        }
+    }
+
+    fn reset(&mut self) {
+        self.valid_idx_ll = (0..self.ll).collect();
+        self.valid_idx_lh = (0..self.lh).collect();
+        self.valid_idx_hl = (0..self.hl).collect();
+        self.valid_idx_hh = (0..self.hh).collect();
+    }
+
+    fn pick(&mut self, bucket: usize) -> usize {
+        let index: u64 = rand::random();
+        let idx_bucket = match bucket {
+            0 => &mut self.valid_idx_ll,
+            1 => &mut self.valid_idx_lh,
+            2 => &mut self.valid_idx_hl,
+            3 => &mut self.valid_idx_hh,
+            _ => unreachable!(),
+        };
+        idx_bucket.swap_remove(index as usize % idx_bucket.len())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -106,11 +156,19 @@ impl ImageManager {
             high_low,
             high_high,
         };
+        let state = State::new(&q);
 
-        Ok(Self { dist, images: q })
+        Ok(Self {
+            dist,
+            images: q,
+            state,
+        })
     }
 
-    pub fn get_rand_image(&self) -> &Image {
+    pub fn get_rand_image(&mut self, init: bool) -> &Image {
+        if init {
+            self.state.reset();
+        }
         let q = self.dist.generate();
         debug_assert!(q < 4);
         let i = match q {
@@ -120,7 +178,7 @@ impl ImageManager {
             3 => &self.images.high_high,
             _ => unreachable!(),
         };
-        let index: u64 = rand::random();
-        &i[index as usize % i.len()]
+        let index = self.state.pick(q);
+        &i[index]
     }
 }

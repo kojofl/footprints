@@ -34,8 +34,6 @@
 	<Lightswitch />
 </div>
 
-{Settings.current.baseline_duration}
-
 <!--TODO: scrolling-->
 <div class="flex flex-col h-screen overflow-scroll">
 	<form class="flex-grow space-y-2" onsubmit={save}>
@@ -48,6 +46,15 @@
 					bind:checked={Settings.current.show_countdown}
 				/>
 				<p>Show countdown</p>
+			</label>
+
+			<label class="flex items-center space-x-2">
+				<input
+					class="checkbox"
+					type="checkbox"
+					bind:checked={Settings.current.sound_cue}
+				/>
+				<p>Sound cue</p>
 			</label>
 
 			<label class="label">
