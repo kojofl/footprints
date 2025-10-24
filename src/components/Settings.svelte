@@ -29,13 +29,14 @@
 	}
 </script>
 
+<div class="flex flex-col overflow-scroll" style="height: 95vh;">
 <div class="flex justify-between">
 	<h3 class="h3">Settings</h3>
 	<Lightswitch />
 </div>
 
 <!--TODO: scrolling-->
-<div class="flex flex-col h-screen overflow-scroll">
+<div>
 	<form class="flex-grow space-y-2" onsubmit={save}>
 		<div class="space-y-2">
 			<span class="label-text text-lg">Some on/off setting:</span>
@@ -196,6 +197,7 @@
 			</label>
 		</div>
 	</form>
+</div>
 </div>
 
 {#snippet mark(marker: number)} {marker.toFixed(1)} {/snippet}
