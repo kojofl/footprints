@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Navbar from "$components/Navbar.svelte";
-	import { useDebounce } from "runed";
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
 	import ExperimentRunner from "./components/ExperimentRunner.svelte";
 	import { SpeedState } from "$lib/speed_state.js";

@@ -4,6 +4,7 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import type { ExperimentStateProps } from "./types.js";
 	import { Settings } from "$lib/settings_state.js";
+	import Instruction from "./Instruction.svelte";
 
 	let { running = $bindable(), state_machine }: ExperimentStateProps =
 		$props();
@@ -35,14 +36,7 @@
 		<Countdown duration={2} />
 	</div>
 {:else}
-	<div class="fixation-cross-container">Todo: Instr text</div>
-	<div class="flex mt-5 container m-auto justify-center">
-		<button
-			type="button"
-			class="btn preset-filled-primary-500"
-			onclick={async () => await start_experiment()}>Go</button
-		>
-	</div>
+	<Instruction cb={start_experiment} />
 {/if}
 
 <style>
@@ -54,7 +48,7 @@
 		width: 80%;
 		height: 80vh; /* Or a specific height if you prefer */
 		position: relative; /* Or relative, depending on your layout */
-		top: 10%;
+		margin-top: 8vh;
 		left: 10%;
 	}
 
