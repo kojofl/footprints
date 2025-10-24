@@ -101,7 +101,7 @@
 
 <div class="container flex m-auto items-center justify-center h-screen">
 	<div class="mx-auto w-full">
-		<img class="m-auto" src={props.img_url} alt="stimulus" />
+		<img class="m-auto w-full" src={props.img_url} alt="stimulus" />
 	</div>
 	{#if step === 0}
 		<form
