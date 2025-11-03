@@ -58,7 +58,6 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 					await publish_event(LsLEvent.Rating);
 				},
 				rated: (data: any) => {
-					invoke("add_rating", { rating: data });
 					ExperimentIteration.current += 1;
 					if (ExperimentIteration.current < iterations) {
 						return "baseline"

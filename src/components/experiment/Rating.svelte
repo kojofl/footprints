@@ -4,6 +4,7 @@
 	import { Settings } from "$lib/settings_state.js";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { LengthState } from "$lib/length_state.js";
+    import { invoke } from "@tauri-apps/api/core";
 
 	const props: ExperimentStateProps = $props();
 
@@ -78,23 +79,26 @@
 			}
 		}
 	}
-	function cont() {
+	async function cont() {
 		if (step === 0 && Settings.current.rating.arousal) {
 			step++;
 		} else {
-			props.state_machine.send("rated", {
-				baseline_speed: SpeedState.current,
-				modification: props.duration.name,
-				effective_speed:
-					((LengthState.current as number) /
-						(props.duration.time / 1000)) *
-					3.6,
-				name: props.img_name,
-				n_valence: props.img_valence,
-				n_arousal: props.img_arousal,
-				valence: valence_rating,
-				arousal: arousal_rating,
+			await invoke("add_rating", {
+				rating: {
+					baseline_speed: SpeedState.current,
+					modification: props.duration.name,
+					effective_speed:
+						((LengthState.current as number) /
+							(props.duration.time / 1000)) *
+						3.6,
+					name: props.img_name,
+					n_valence: props.img_valence,
+					n_arousal: props.img_arousal,
+					valence: valence_rating,
+					arousal: arousal_rating,
+				},
 			});
+			props.state_machine.send("rated");
 		}
 	}
 </script>
@@ -106,8 +110,8 @@
 	{#if step === 0}
 		<form
 			class="mx-auto w-full m-auto flex flex-col"
-			onsubmit={() => {
-				cont();
+			onsubmit={async () => {
+				await cont();
 			}}
 		>
 			<label class="m-auto">
@@ -124,7 +128,7 @@
 	{:else}
 		<form
 			class="mx-auto w-full m-auto flex flex-col"
-			onsubmit={() => cont()}
+			onsubmit={async () => await cont()}
 		>
 			<label class="m-auto">
 				<span class="">Arousal</span>
