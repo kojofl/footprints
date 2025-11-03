@@ -9,7 +9,6 @@
 	});
 
 	async function onKeyDown(e: KeyboardEvent) {
-		console.log(e.key);
 		if (e.key === "F11") {
 			const w = getCurrentWindow();
 			const set = await w.isFullscreen();

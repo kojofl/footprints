@@ -24,6 +24,7 @@ pub struct LogBuilder {
 
 impl LogBuilder {
     pub fn baseline(&mut self) {
+        debug_assert!(self.baseline_time.is_none());
         self.baseline_time = Some(Local::now());
     }
     pub fn stimulus(&mut self) {
