@@ -121,11 +121,7 @@
 		},
 	);
 
-	let State = $state(StateMap[experiment_state_machine.current]);
-
-	$effect(() => {
-		State = StateMap[experiment_state_machine.current];
-	});
+	let State = $derived(StateMap[experiment_state_machine.current]);
 
 	onDestroy(async () => {
 		experiment_state_machine.send("cancel");
