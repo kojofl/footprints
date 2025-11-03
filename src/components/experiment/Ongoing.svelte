@@ -8,7 +8,7 @@
 
 	const { state_machine, duration, img_url }: ExperimentStateProps = $props();
 
-	let start_go = $state(false);
+	let start_go = $derived(state_machine.current !== "stimulus");
 	let tracker: HTMLDivElement | undefined = $state();
 	// svelte-ignore non_reactive_update
 	let animation: Animation;
@@ -34,11 +34,6 @@
 		};
 	}
 
-	$effect(() => {
-		if (state_machine.current === "go") {
-			start_go = true;
-		}
-	});
 	$effect(() => {
 		if (tracker) {
 			start();
