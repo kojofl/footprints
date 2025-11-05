@@ -46,6 +46,7 @@
     ],
 	"resources": {
 		"../static/images/": "resources/images/",
+		"../static/sprites/": "resources/sprites/",
 		"../static/music/": "resources/music/"
 	}
   }
