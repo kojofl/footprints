@@ -5,21 +5,11 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { NumIterations } from "$lib/num_iter_state.js";
-	import { watch } from "runed";
 	import { Slider } from "@skeletonlabs/skeleton-svelte";
 
 	let { openState = $bindable() } = $props();
 
-	let files: FileList | undefined = $state();
-
-	watch(
-		() => files,
-		() => {
-			if (files?.item(0)) {
-				Settings.current.task_instructions = files.item(0)!.name;
-			}
-		},
-	);
+	$inspect(Settings.current);
 
 	async function calibrate() {
 		await invoke("open_calibration");

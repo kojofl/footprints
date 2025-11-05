@@ -24,17 +24,8 @@ pub fn open_calibration(app: AppHandle) {
 pub fn publish_lsl(
     event: LsLEvent,
     state: State<'_, LsLManager>,
-    logger: State<'_, Mutex<Logger>>,
 ) {
     state.publish_event(event).expect("Lsl worker crashed");
-    let mut logger = logger.lock().unwrap();
-    match event {
-        LsLEvent::Baseline => logger.current.baseline(),
-        LsLEvent::Stimulus => logger.current.stimulus(),
-        LsLEvent::Movement => logger.current.go(),
-        LsLEvent::Rating => logger.current.rating(),
-        _ => {}
-    }
 }
 
 #[tauri::command]

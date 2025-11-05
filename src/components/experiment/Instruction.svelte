@@ -8,7 +8,6 @@
 	let step = $state(0);
 
 	async function onKeyDown(e: KeyboardEvent) {
-		console.log(e.key);
 		switch (e.key) {
 			case "Enter": {
 				if (step == 3) {

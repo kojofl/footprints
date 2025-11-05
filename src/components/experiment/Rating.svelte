@@ -4,6 +4,7 @@
 	import { Settings } from "$lib/settings_state.js";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { LengthState } from "$lib/length_state.js";
+	import { invoke } from "@tauri-apps/api/core";
 
 	const props: ExperimentStateProps = $props();
 
@@ -116,8 +117,7 @@
 					value={valence_rating}
 					count={7}
 					onValueChange={(e) => (valence_rating = e.value)}
-				
-					/>
+				/>
 			</label>
 			<button class="btn" type="submit">Submit</button>
 		</form>
