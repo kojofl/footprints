@@ -9,14 +9,31 @@ export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "cancel";
 // global reactive variable to track the experiment progress
 export const ExperimentIteration = new PersistedState("ex_iter", 0);
 
+interface Log {
+	baseline_time: string,
+	stimulus_time: string,
+	go_time: string,
+	rating_time: string,
+}
+
 export function create_state_machine(cancel_callback: () => void, iterations: number = 2): FiniteStateMachine<MyStates, MyEvents> {
 	// We just created the experiment state machine so we are in the first iteration.
 	ExperimentIteration.current = 0;
+
+	let log: Log = {
+		baseline_time: "",
+		stimulus_time: "",
+		go_time: "",
+		rating_time: ""
+	}
+
+
 	const experiment_state_machine = new FiniteStateMachine<MyStates, MyEvents>(
 		"baseline",
 		{
 			baseline: {
 				_enter: async () => {
+					log.baseline_time = new Date().toISOString();
 					await publish_event(LsLEvent.Baseline);
 				},
 				start: () => {
@@ -29,6 +46,7 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 			},
 			stimulus: {
 				_enter: async () => {
+					log.stimulus_time = new Date().toISOString();
 					await publish_event(LsLEvent.Stimulus);
 					const max = Settings.current.stimulus_duration + Settings.current.stimulus_jitter;
 					const min = Settings.current.stimulus_duration - Settings.current.stimulus_jitter;
@@ -43,6 +61,7 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 			},
 			go: {
 				_enter: async () => {
+					log.go_time = new Date().toISOString();
 					await publish_event(LsLEvent.Movement);
 				},
 				g_fin: "rating",
@@ -55,9 +74,14 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 			},
 			rating: {
 				_enter: async () => {
+					log.rating_time = new Date().toISOString();
 					await publish_event(LsLEvent.Rating);
 				},
 				rated: (data: any) => {
+					let x = { ...log, ...data };
+					console.log(x);
+					invoke("add_rating", { rating: x });
+
 					ExperimentIteration.current += 1;
 					if (ExperimentIteration.current < iterations) {
 						return "baseline"
