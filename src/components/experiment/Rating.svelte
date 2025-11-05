@@ -79,7 +79,7 @@
 			}
 		}
 	}
-	async function cont() {
+	function cont() {
 		if (step === 0 && Settings.current.rating.arousal) {
 			step++;
 		} else {
@@ -107,8 +107,8 @@
 	{#if step === 0}
 		<form
 			class="mx-auto w-full m-auto flex flex-col"
-			onsubmit={async () => {
-				await cont();
+			onsubmit={() => {
+				cont();
 			}}
 		>
 			<label class="m-auto">
@@ -124,7 +124,7 @@
 	{:else}
 		<form
 			class="mx-auto w-full m-auto flex flex-col"
-			onsubmit={async () => await cont()}
+			onsubmit={() => cont()}
 		>
 			<label class="m-auto">
 				<span class="">Arousal</span>

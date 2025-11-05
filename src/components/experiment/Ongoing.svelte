@@ -8,15 +8,12 @@
 	const { state_machine, duration, img_url }: ExperimentStateProps = $props();
 
 	let start_go = $derived(state_machine.current !== "stimulus");
-	let tracker: HTMLDivElement | undefined = $state();
-	// svelte-ignore non_reactive_update
-	let animation: Animation;
 
-	async function start() {
-		if (Settings.current.sound_cue) {
-			await invoke("play_sound");
+	$effect(() => {
+		if (start_go && Settings.current.sound_cue) {
+			invoke("play_sound");
 		}
-	}
+	});
 	let w: number = $state(0);
 </script>
 
