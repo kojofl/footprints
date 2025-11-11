@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { MyEvents, MyStates } from "$lib/state_machine.js";
+	import { invoke } from "@tauri-apps/api/core";
 	import type { FiniteStateMachine } from "runed";
 	import { onMount } from "svelte";
 
@@ -45,28 +46,28 @@
 			await sleep(3000);
 			waiting_right = false;
 			left = true;
-			animation = tracker!.animate(
+			const animation2 = tracker!.animate(
 				[{ left: `${props.w - 320 - 200}px` }, { left: "200px" }],
 				{
 					duration: props.duration.time / 2,
 					easing: "linear",
 				},
 			);
-			animation.play();
-			animation.onfinish = async () => {
+			animation2.play();
+			animation2.onfinish = async () => {
 				waiting_left = true;
 				await sleep(3000);
 				waiting_left = false;
 				left = false;
-				animation = tracker!.animate(
+				const animation3 = tracker!.animate(
 					[{ left: "200px" }, { left: `${props.w / 2 - 160}px` }],
 					{
 						duration: props.duration.time / 4,
 						easing: "linear",
 					},
 				);
-				animation.play();
-				animation.onfinish = () => {
+				animation3.play();
+				animation3.onfinish = () => {
 					tracker!.style.left = `${props.w / 2 - 160}px`;
 					props.state_machine.send("g_fin");
 				};

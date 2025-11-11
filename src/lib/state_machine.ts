@@ -3,6 +3,7 @@ import { LsLEvent, publish_event } from "./lsl.js";
 import { invoke } from "@tauri-apps/api/core";
 import { stimulus_debounce } from "./debounce.js";
 import { Settings } from "./settings_state.js";
+import { StimulusModState } from "./stimulus_time_mod.js";
 export type MyStates = "baseline" | "stimulus" | "go" | "rating" | "canceled";
 export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "cancel";
 
@@ -48,9 +49,11 @@ export function create_state_machine(cancel_callback: () => void, iterations: nu
 				_enter: async () => {
 					log.stimulus_time = new Date().toISOString();
 					await publish_event(LsLEvent.Stimulus);
-					const max = Settings.current.stimulus_duration + Settings.current.stimulus_jitter;
-					const min = Settings.current.stimulus_duration - Settings.current.stimulus_jitter;
+					const max = StimulusModState.current.duration + StimulusModState.current.jitter;
+					const min = StimulusModState.current.duration - StimulusModState.current.jitter;
 					let random = Math.random() * (max - min + 1) + min;
+					console.log(max, min, random);
+					console.log(max, min, random);
 					stimulus_debounce(experiment_state_machine, random * 1000)
 				},
 				s_fin: "go",
