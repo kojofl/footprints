@@ -4,14 +4,15 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import type { ExperimentStateProps } from "./types.js";
 	import { Settings } from "$lib/settings_state.js";
+	import { BaselineModState } from "$lib/baseline_time_mod.js";
 	import Instruction from "./Instruction.svelte";
 
 	let { running = $bindable(), state_machine }: ExperimentStateProps =
 		$props();
 	const max =
-		Settings.current.stimulus_duration + Settings.current.stimulus_jitter;
+		BaselineModState.current.duration + BaselineModState.current.jitter;
 	const min =
-		Settings.current.stimulus_duration - Settings.current.stimulus_jitter;
+		BaselineModState.current.duration - BaselineModState.current.jitter;
 	let random = Math.random() * (max - min + 1) + min;
 	async function start_experiment() {
 		baseline_debounce(state_machine, random * 1000);

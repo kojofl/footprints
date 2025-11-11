@@ -69,6 +69,7 @@
 		close,
 		NumIterations.current as number,
 	);
+	let signal = $derived(experiment_state_machine.current === "go");
 
 	function expandArray(arr: any[], n: number) {
 		console.log(arr, n);
@@ -133,6 +134,7 @@
 {#key State}
 	<div
 		class="absolute min-w-screen min-h-screen p-4"
+		class:flash-background={signal}
 		in:fly={{
 			x: 200,
 			duration: 500,
@@ -155,3 +157,15 @@
 		/>
 	</div>
 {/key}
+
+<style>
+	@keyframes flash {
+		50% {
+			background-color: green;
+		}
+	}
+
+	.flash-background {
+		animation: flash 600ms ease-out 1;
+	}
+</style>

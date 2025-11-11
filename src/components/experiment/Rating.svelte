@@ -101,40 +101,28 @@
 </script>
 
 <div class="container flex m-auto items-center justify-center h-screen">
-	<div class="mx-auto w-full">
+	<div class="mx-auto w-full basis-2/3">
 		<img class="m-auto w-full" src={props.img_url} alt="stimulus" />
 	</div>
 	{#if step === 0}
 		<form
-			class="mx-auto w-full m-auto flex flex-col"
+			class="mx-auto w-full m-auto flex flex-col basis-1/3"
 			onsubmit={() => {
 				cont();
 			}}
 		>
-			<label class="m-auto">
-				<span class="">Valence</span>
-				<Rating
-					value={valence_rating}
-					count={7}
-					onValueChange={(e) => (valence_rating = e.value)}
-				/>
-			</label>
-			<button class="btn" type="submit">Submit</button>
+			<h2 class="h2 m-auto">Valence</h2>
+			<p class="mt-2 m-auto">Bewerten Sie das Bild von 1-7.</p>
+			<p class="mt-2 m-auto">Mit enter bestätigen.</p>
 		</form>
 	{:else}
 		<form
-			class="mx-auto w-full m-auto flex flex-col"
+			class="mx-auto w-full m-auto flex flex-col basis-1/3"
 			onsubmit={() => cont()}
 		>
-			<label class="m-auto">
-				<span class="">Arousal</span>
-				<Rating
-					value={arousal_rating}
-					count={7}
-					onValueChange={(e) => (arousal_rating = e.value)}
-				/>
-			</label>
-			<button class="btn" type="submit">Submit</button>
+			<h2 class="h2 m-auto">Arousal</h2>
+			<p class="mt-2 m-auto">Bewerten Sie das Bild von 1-7.</p>
+			<p class="mt-2 m-auto">Mit enter bestätigen.</p>
 		</form>
 	{/if}
 </div>

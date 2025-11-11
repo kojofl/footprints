@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { LengthState } from "$lib/length_state.js";
+	import { BaselineModState } from "$lib/baseline_time_mod.js";
+	import { StimulusModState } from "$lib/stimulus_time_mod.js";
 	import Lightswitch from "./Lightswitch.svelte";
 	import { Settings } from "$lib/settings_state.js";
 	import { invoke } from "@tauri-apps/api/core";
@@ -135,53 +137,43 @@
 			</label>
 			<span class="label-text text-lg">Baseline</span>
 			<label class="flex items-center space-x-2">
-				<Slider
-					value={[Settings.current.baseline_duration]}
-					onValueChange={(e) => (Settings.current.baseline_duration = e.value[0])}
-					markers={[2, 3, 4, 5]}
-					min={2}
-					max={5}
+				<input
+					type="number"
+					class="input"
+					placeholder="Baseline duration"
+					required
+					bind:value={BaselineModState.current.duration}
 				/>
 				<p>Duration</p>
 			</label>
 			<label class="flex items-center space-x-2">
-				<Slider
-					value={[Settings.current.baseline_jitter]}
-					onValueChange={(e) => {
-						(Settings.current.baseline_jitter = e.value[0])}
-						}
-					markers={[
-						0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0,
-					]}
-					min={0.0}
-					max={2.0}
-					step={0.2}
-					mark={mark}
+				<input
+					type="number"
+					class="input"
+					placeholder="Baseline jitter"
+					required
+					bind:value={BaselineModState.current.jitter}
 				/>
 				<p>Jitter</p>
 			</label>
 			<span class="label-text text-lg">Stimulus</span>
 			<label class="flex items-center space-x-2">
-				<Slider
-					value={[Settings.current.stimulus_duration]}
-					onValueChange={(e) => (Settings.current.stimulus_duration = e.value[0])}
-					markers={[2, 3, 4, 5]}
-					min={2}
-					max={5}
+				<input
+					type="number"
+					class="input"
+					placeholder="Stimulus duration"
+					required
+					bind:value={StimulusModState.current.duration}
 				/>
 				<p>Duration</p>
 			</label>
 			<label class="flex items-center space-x-2">
-				<Slider
-					value={[Settings.current.stimulus_jitter]}
-					onValueChange={(e) => (Settings.current.stimulus_jitter = e.value[0])}
-					markers={[
-						0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0,
-					]}
-					min={0.0}
-					max={2.0}
-					step={0.2}
-					mark={mark}
+				<input
+					type="number"
+					class="input"
+					placeholder="Stimulus jitter"
+					required
+					bind:value={StimulusModState.current.jitter}
 				/>
 				<p>Jitter</p>
 			</label>
