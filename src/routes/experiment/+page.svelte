@@ -36,11 +36,11 @@
 			/>
 		</label>
 		<label class="label hidden">
-			<span class="label-text">Track length in m</span>
+			<span class="label-text">Total walking distance per trial in m</span>
 			<input
 				type="number"
 				class="input"
-				placeholder="Length in m"
+				placeholder="Distance in m"
 				required
 				bind:value={LengthState.current}
 			/>

@@ -1,15 +1,11 @@
 import { PersistedState } from "runed";
 
-/**
- * Total distance walked during one trial, i.e. middle -> marker -> other
- * marker -> middle. It is not the marker-to-marker track length.
- *
- * Unrelated to `CalibrationLengthState`, which only describes a calibration step.
- */
+// Distance walked during a single calibration step.
+// It says nothing about the distance covered in an experiment trial.
 function get_custom_state(): PersistedState<number | ""> {
-	const LengthState: PersistedState<number> = new PersistedState("length", 10);
+	const CalibrationLengthState: PersistedState<number | ""> = new PersistedState("calibration_length", 10);
 	const originalDescriptor = Object.getOwnPropertyDescriptor(
-		Object.getPrototypeOf(LengthState),
+		Object.getPrototypeOf(CalibrationLengthState),
 		'current'
 	);
 
@@ -28,7 +24,7 @@ function get_custom_state(): PersistedState<number | ""> {
 		};
 
 		Object.defineProperty(
-			LengthState,
+			CalibrationLengthState,
 			'current',
 			{
 				set: newSetter,
@@ -38,7 +34,7 @@ function get_custom_state(): PersistedState<number | ""> {
 			}
 		);
 	}
-	return LengthState;
+	return CalibrationLengthState;
 }
 
-export const LengthState = get_custom_state();
+export const CalibrationLengthState = get_custom_state();
