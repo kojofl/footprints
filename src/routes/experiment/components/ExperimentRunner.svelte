@@ -58,6 +58,8 @@
 		stimulus: Ongoing,
 		go: Ongoing,
 		rating: Rating,
+		// The canceled state intentionally renders nothing, see `create_state_machine`.
+		canceled: undefined,
 	};
 
 	function close() {
@@ -133,30 +135,32 @@
 </script>
 
 {#key State}
-	<div
-		class="absolute min-w-screen min-h-screen p-4"
-		class:flash-background={signal}
-		in:fly={{
-			x: 200,
-			duration: 500,
-			easing: quintOut,
-		}}
-		out:fly={{
-			x: -200,
-			duration: 500,
-			easing: quintOut,
-		}}
-	>
-		<State
-			bind:running
-			duration={durations[index]}
-			state_machine={experiment_state_machine}
-			img_valence={img_data.current?.valence}
-			img_arousal={img_data.current?.arousal}
-			img_name={img_data.current?.name}
-			img_url={img_data.current?.url}
-		/>
-	</div>
+	{#if State}
+		<div
+			class="absolute min-w-screen min-h-screen p-4"
+			class:flash-background={signal}
+			in:fly={{
+				x: 200,
+				duration: 500,
+				easing: quintOut,
+			}}
+			out:fly={{
+				x: -200,
+				duration: 500,
+				easing: quintOut,
+			}}
+		>
+			<State
+				bind:running
+				duration={durations[index]}
+				state_machine={experiment_state_machine}
+				img_valence={img_data.current?.valence}
+				img_arousal={img_data.current?.arousal}
+				img_name={img_data.current?.name}
+				img_url={img_data.current?.url}
+			/>
+		</div>
+	{/if}
 {/key}
 
 <style>

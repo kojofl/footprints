@@ -5,17 +5,12 @@
 	import type { ExperimentStateProps } from "./types.js";
 	import { Settings } from "$lib/settings_state.js";
 	import { BaselineModState } from "$lib/baseline_time_mod.js";
+	import { jittered_duration } from "$lib/jitter.js";
 	import Instruction from "./Instruction.svelte";
 
 	let { running = $bindable(), state_machine }: ExperimentStateProps =
 		$props();
-	const max =
-		(BaselineModState.current.duration as number) +
-		(BaselineModState.current.jitter as number);
-	const min =
-		(BaselineModState.current.duration as number) -
-		(BaselineModState.current.jitter as number);
-	let random = Math.random() * (max - min + 1) + min;
+	const random = jittered_duration(BaselineModState.current);
 	async function start_experiment() {
 		baseline_debounce(state_machine, random * 1000);
 		running = true;
