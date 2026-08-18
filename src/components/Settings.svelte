@@ -6,8 +6,10 @@
 	import { Settings } from "$lib/settings_state.js";
 	import { invoke } from "@tauri-apps/api/core";
 	import { SpeedState } from "$lib/speed_state.js";
-	import { NumIterations } from "$lib/num_iter_state.js";
+	import { Blocks, total_trials } from "$lib/blocks_state.js";
 	import { locale } from "svelte-i18n";
+	import Trash2 from "@lucide/svelte/icons/trash-2";
+	import Plus from "@lucide/svelte/icons/plus";
 
 	let { openState = $bindable() } = $props();
 
@@ -18,6 +20,14 @@
 	}
 	function save() {
 		openState = false;
+	}
+
+	function add_block() {
+		Blocks.current = [...Blocks.current, { trials: 10, stimulus: true }];
+	}
+
+	function remove_block(i: number) {
+		Blocks.current = Blocks.current.filter((_, j) => j !== i);
 	}
 </script>
 
@@ -65,7 +75,9 @@
 					>Calibrate Speed</button
 				>
 				<label class="label">
-					<span class="label-text">Total walking distance per trial in m</span>
+					<span class="label-text"
+						>Total walking distance per trial in m</span
+					>
 					<input
 						type="number"
 						class="input"
@@ -74,17 +86,63 @@
 						bind:value={LengthState.current}
 					/>
 				</label>
-				<label class="label">
-					<span class="label-text">Instruction Iterations</span>
-					<input
-						type="number"
-						class="input"
-						placeholder="Number of Iterations"
-						step="1"
-						required
-						bind:value={NumIterations.current}
-					/>
-				</label>
+				<span class="label-text text-lg">Blocks</span>
+				<p class="text-sm opacity-75">
+					The trials of a block either all show an emotional stimulus,
+					or all show a fixation cross in its place.
+				</p>
+				{#each Blocks.current as block, i}
+					<div
+						class="flex flex-col space-y-2 rounded border border-surface-500/30 p-2"
+					>
+						<div class="flex items-center justify-between">
+							<span class="font-bold">Block {i + 1}</span>
+							<button
+								type="button"
+								class="btn-icon btn-icon-sm"
+								aria-label="Remove block {i + 1}"
+								onclick={() => remove_block(i)}
+							>
+								<Trash2 size={16} />
+							</button>
+						</div>
+						<div class="flex items-center space-x-2">
+							<input
+								type="number"
+								class="input w-20"
+								placeholder="Trials"
+								min="0"
+								step="1"
+								required
+								bind:value={block.trials}
+							/>
+							<span class="whitespace-nowrap">trials</span>
+							<label
+								class="flex items-center space-x-2 whitespace-nowrap"
+							>
+								<input
+									class="checkbox"
+									type="checkbox"
+									bind:checked={block.stimulus}
+								/>
+								<span>Stimulus</span>
+							</label>
+						</div>
+					</div>
+				{/each}
+				<div class="flex items-center justify-between">
+					<button
+						type="button"
+						class="btn preset-tonal"
+						onclick={add_block}
+					>
+						<Plus size={16} />
+						<span>Add block</span>
+					</button>
+					<span class="whitespace-nowrap"
+						>{total_trials(Blocks.current)} trials</span
+					>
+				</div>
 				<label class="label">
 					<span class="label-text">Experiment Language</span>
 					<select

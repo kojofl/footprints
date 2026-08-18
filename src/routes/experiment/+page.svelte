@@ -7,12 +7,19 @@
 	import { Settings } from "$lib/settings_state.js";
     import { invoke } from "@tauri-apps/api/core";
     import { ExperimentIteration } from "$lib/state_machine.js";
+	import { Blocks, total_trials } from "$lib/blocks_state.js";
 
 	let openState = $state(false);
 
 	$inspect(ExperimentIteration.current);
 
+	let trials = $derived(total_trials(Blocks.current));
+
 	async function start_experiment() {
+		// An empty block configuration has no trials to run.
+		if (trials === 0) {
+			return;
+		}
 		await invoke("init_logger", { name: Settings.current.subject_name });
 		openState = true;
 	}
@@ -68,8 +75,14 @@
 
 		<button
 			class="btn preset-filled-primary-500 dark:preset-filled-primary-500"
-			type="submit">Start</button
+			type="submit"
+			disabled={trials === 0}>Start</button
 		>
+		{#if trials === 0}
+			<p class="text-sm opacity-75">
+				No trials configured, add a block in the settings.
+			</p>
+		{/if}
 		<Modal
 			open={openState}
 			onOpenChange={(e) => (openState = e.open)}
