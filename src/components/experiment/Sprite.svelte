@@ -3,7 +3,6 @@
 	import type { MyEvents, MyStates } from "$lib/state_machine.js";
 	import { invoke } from "@tauri-apps/api/core";
 	import type { FiniteStateMachine } from "runed";
-	import { onMount } from "svelte";
 
 	interface Props {
 		w: number;
@@ -13,21 +12,24 @@
 			time: number;
 		};
 		state_machine: FiniteStateMachine<MyStates, MyEvents>;
+		/** Edge length of the square the triangle is drawn into. */
+		size?: number;
+		color?: string;
 	}
 
-	let props: Props = $props();
+	let { size = 120, color = "black", ...props }: Props = $props();
 	let tracker: HTMLDivElement | undefined = $state();
 	// svelte-ignore non_reactive_update
 	let animation: Animation;
 
-	// const names = ["one"];
-	const names = ["one", "two", "three", "four", "five", "six"].reverse();
-
-	let current = $state(0);
+	/** True while the marker points towards the left end of the track. */
 	let left = $state(false);
-	let waiting_left = $state(false);
-	let waiting_right = $state(false);
-	let name = $derived(names[current]);
+
+	// The marker is positioned by its left edge, so every waypoint is the tick position
+	// shifted by half the marker to put its centre on the tick.
+	const centre = $derived(props.w / 2 - size / 2);
+	const right_tick = $derived(0.9 * props.w - size / 2);
+	const left_tick = $derived(0.1 * props.w - size / 2);
 
 	function sleep(time: number) {
 		return new Promise((resolve) => setTimeout(resolve, time));
@@ -35,7 +37,7 @@
 
 	$effect(() => {
 		animation = tracker!.animate(
-			[{ right: `${props.w / 2 - 160}px` }, { right: "10%" }],
+			[{ left: `${centre}px` }, { left: `${right_tick}px` }],
 			{
 				duration: props.duration.time / 4,
 				easing: "linear",
@@ -45,19 +47,15 @@
 		let animation3: Animation | undefined = undefined;
 		animation.play();
 		animation.onfinish = async () => {
-			waiting_right = true;
+			tracker!.style.left = `${right_tick}px`;
 			await sleep(1000);
 			left = true;
 			await sleep(2000);
 			if (Settings.current.sound_cue) {
 				invoke("play_sound");
 			}
-			waiting_right = false;
 			animation2 = tracker!.animate(
-				[
-					{ left: `${props.w - 320 - 0.1 * props.w}px` },
-					{ left: "10%" },
-				],
+				[{ left: `${right_tick}px` }, { left: `${left_tick}px` }],
 				{
 					duration: props.duration.time / 2,
 					easing: "linear",
@@ -65,16 +63,15 @@
 			);
 			animation2.play();
 			animation2.onfinish = async () => {
-				waiting_left = true;
+				tracker!.style.left = `${left_tick}px`;
 				await sleep(1000);
 				left = false;
 				await sleep(2000);
 				if (Settings.current.sound_cue) {
 					invoke("play_sound");
 				}
-				waiting_left = false;
 				animation3 = tracker!.animate(
-					[{ left: "10%" }, { left: `${props.w / 2 - 160}px` }],
+					[{ left: `${left_tick}px` }, { left: `${centre}px` }],
 					{
 						duration: props.duration.time / 4,
 						easing: "linear",
@@ -82,7 +79,7 @@
 				);
 				animation3.play();
 				animation3.onfinish = () => {
-					tracker!.style.left = `${props.w / 2 - 160}px`;
+					tracker!.style.left = `${centre}px`;
 					props.state_machine.send("g_fin");
 				};
 			};
@@ -93,108 +90,84 @@
 			animation3?.cancel();
 		};
 	});
-
-	onMount(() => {
-		const interval = setInterval(() => {
-			current = (current + 1) % names.length;
-		}, 500);
-
-		return () => clearInterval(interval);
-	});
 </script>
 
-<div class="scene-container" style="top: {props.y}px;">
-	<img
-		src="/sprites/Buildings/Red/Tower.png"
-		class="boundary-image start-point"
-		alt="left"
-		style="absolute"
-	/>
-	<div style="perspective: 500px;">
-		<div
-			data-sevenup="{name}.png"
-			bind:this={tracker}
-			class="{left ? 'left' : ''} {waiting_left
-				? 'waiting_left'
-				: ''} {waiting_right ? 'waiting_right ' : ''} "
-		></div>
+<div
+	class="scene-container"
+	style="top: {props.y}px; --marker-size: {size}px; --marker-color: {color};"
+>
+	<!-- The path the subject walks, with a tick at each physical turnaround marker. -->
+	<div class="track"></div>
+	<div class="tick start-point"></div>
+	<div class="tick end-point"></div>
+	<div bind:this={tracker} class="marker" style="left: {centre}px;">
+		<!-- The triangle points along the direction of travel; it flips once, instantly,
+		     one second into the three second turnaround pause. -->
+		<div class="facing" class:left>
+			<!-- The centroid sits at x=50 so the mirror pivots about the triangle's
+			     visual centre: the flip turns it in place instead of shifting it. -->
+			<svg viewBox="0 0 100 100" aria-hidden="true">
+				<polygon points="27,8 96,50 27,92" />
+			</svg>
+		</div>
 	</div>
-	<img
-		src="/sprites/Buildings/Red/Tower.png"
-		class="boundary-image end-point"
-		alt="right"
-		style="absolute"
-	/>
 </div>
 
 <style>
-	.waiting_right {
-		right: 10%;
-	}
-
-	.waiting_left {
-		left: 10%;
-	}
-
 	.scene-container {
 		position: relative;
 		width: 100%;
-		/* Set height to match your sprite */
-		height: 320px;
+		height: var(--marker-size);
 	}
 
-	/*
-	  Base styles for the boundary images.
-	  They are 'absolute' so they don't affect other elements.
-	  'z-index: 1' puts them *behind* the sprite.
-	*/
-	.boundary-image {
+	.track {
 		position: absolute;
-		top: 0;
+		top: 50%;
+		left: 10%;
+		width: 80%;
+		height: 2px;
+		transform: translateY(-50%);
+		background-color: var(--marker-color);
 	}
+
+	.tick {
+		position: absolute;
+		top: 50%;
+		width: 6px;
+		height: calc(var(--marker-size) * 0.9);
+		transform: translate(-50%, -50%);
+		background-color: var(--marker-color);
+	}
+
 	.start-point {
 		left: 10%;
 	}
+
 	.end-point {
-		right: 10%;
+		left: 90%;
 	}
-	.left {
+
+	.marker {
+		position: absolute;
+		top: 50%;
+		width: var(--marker-size);
+		height: var(--marker-size);
+		transform: translateY(-50%);
+	}
+
+	.facing {
+		width: 100%;
+		height: 100%;
+	}
+
+	.facing.left {
 		transform: scaleX(-1);
 	}
 
-	[data-sevenup] {
-		background-image: url("/sprites/Units/Blue/Lancer/Lancer_Run.png");
-		background-size: 1920px 320px;
-		position: absolute;
-	}
-	[data-sevenup="one.png"] {
-		width: 320px;
-		height: 320px;
-		background-position: 0px 0px;
-	}
-	[data-sevenup="two.png"] {
-		width: 320px;
-		height: 320px;
-		background-position: -320px 0px;
-	}
-	[data-sevenup="three.png"] {
-		width: 320px;
-		height: 320px;
-		background-position: -640px 0px;
-	}
-	[data-sevenup="four.png"] {
-		width: 320px;
-		height: 320px;
-		background-position: -960px 0px;
-	}
-	[data-sevenup="five.png"] {
-		width: 320px;
-		height: 320px;
-		background-position: -1280px 0px;
-	}
-	[data-sevenup="six.png"] {
-		width: 320px;
-		height: 320px;
-		background-position: -1600px 0px;
+	svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+		fill: var(--marker-color);
 	}
 </style>
