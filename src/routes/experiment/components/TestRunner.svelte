@@ -2,6 +2,7 @@
 	import Ongoing from "$components/experiment/Ongoing.svelte";
 	import Rating from "$components/experiment/Rating.svelte";
 	import Confirm from "$components/experiment/Confirm.svelte";
+	import Pause from "$components/experiment/Pause.svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import { onDestroy } from "svelte";
 	import Baseline from "$components/experiment/Baseline.svelte";
@@ -34,7 +35,7 @@
 
 	// The test run is always a single short block with a stimulus, independent of the
 	// configured blocks.
-	const plan = build_trial_plan([{ trials: 3, stimulus: true }]);
+	const plan = build_trial_plan([{ kind: "stimulus", trials: 3 }]);
 
 	invoke("reset_images");
 
@@ -47,7 +48,7 @@
 				}
 			});
 
-			if (!plan[iteration]?.stimulus) {
+			if (plan[iteration]?.kind !== "stimulus") {
 				return undefined;
 			}
 
@@ -69,6 +70,7 @@
 		go: Ongoing,
 		rating: Rating,
 		confirm: Confirm,
+		pause: Pause,
 		// The canceled state intentionally renders nothing, see `create_state_machine`.
 		canceled: undefined,
 	};

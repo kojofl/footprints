@@ -2,6 +2,7 @@
 	import Ongoing from "$components/experiment/Ongoing.svelte";
 	import Rating from "$components/experiment/Rating.svelte";
 	import Confirm from "$components/experiment/Confirm.svelte";
+	import Pause from "$components/experiment/Pause.svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import { onDestroy } from "svelte";
 	import Baseline from "$components/experiment/Baseline.svelte";
@@ -49,9 +50,9 @@
 				}
 			});
 
-			// A trial without a stimulus shows a fixation cross, so it must not take an
-			// image out of the pool.
-			if (!plan[iteration]?.stimulus) {
+			// Only stimulus trials show an image; neutral trials (fixation cross) and
+			// pauses must not take an image out of the pool.
+			if (plan[iteration]?.kind !== "stimulus") {
 				return undefined;
 			}
 
@@ -73,6 +74,7 @@
 		go: Ongoing,
 		rating: Rating,
 		confirm: Confirm,
+		pause: Pause,
 		// The canceled state intentionally renders nothing, see `create_state_machine`.
 		canceled: undefined,
 	};

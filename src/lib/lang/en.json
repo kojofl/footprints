@@ -54,5 +54,8 @@
     },
     "confirm": {
         "continue": "Press Enter to continue"
+    },
+    "pause": {
+        "continue": "Break between blocks. Press Enter to continue."
     }
 }

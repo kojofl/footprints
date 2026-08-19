@@ -54,5 +54,8 @@
 	},
 	"confirm": {
 		"continue": "Enter drücken um fortzufahren"
+	},
+	"pause": {
+		"continue": "Pause zwischen den Blöcken. Enter drücken um fortzufahren."
 	}
 }

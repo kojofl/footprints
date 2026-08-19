@@ -73,6 +73,14 @@ export function balanced_durations(
 
 	let start = 0;
 	while (start < plan.length) {
+		// A pause occupies a plan slot but carries no walking; give it a placeholder so the
+		// result stays index aligned without drawing from or perturbing the balanced carry.
+		if (plan[start].kind === "pause") {
+			durations.push({ name: "Pause", time: 0 });
+			start += 1;
+			continue;
+		}
+
 		// The plan lists a block's trials consecutively.
 		let end = start;
 		while (end < plan.length && plan[end].block === plan[start].block) {
