@@ -17,7 +17,9 @@ pub struct LsL {
 
 // The LsLMarker struct encoding the App events `LsLMarkerJson` in a u64.
 // `block_type` says which of the remaining fields carry meaning: `session` has neither block nor
-// trial, `test` marks a practice run, and only `calibration` and a `stimulus` rating carry data.
+// trial, `test` marks a practice run, and only a `stimulus` rating carries data. Under
+// `calibration` the `image_id` slot holds the calibrated speed as km/h * 100, but only on the
+// `CalibrationResult` marker that closes it, and is 0 on every other.
 // This encoded marker is published by the App to LsL.
 // Encoding:
 // 8bit   | 8bit       | 8bit  | 8bit   | 16bit      | 8bit  | 8bit
@@ -89,16 +91,85 @@ mod tests {
     fn speed_and_payload_do_not_overlap() {
         let marker = LsLMarkerJson {
             block: 1,
-            block_type: BlockType::Calibration,
+            block_type: BlockType::Stimulus,
             trial: 1,
-            state: StateMarker::None,
+            state: StateMarker::RatingValance,
             image_id: None,
             speed: SpeedModifier::VerySlow,
-            data: Some(MarkerPayload::CalibrationFlag(true)),
+            data: Some(MarkerPayload::Rating(7)),
         };
         let packed = LsLMarker::from(&marker).0;
         assert_eq!((packed >> 8) & 0xFF, SpeedModifier::VerySlow as i64);
-        assert_eq!(packed & 0xFF, 1);
+        assert_eq!(packed & 0xFF, 7);
+    }
+
+    /// The marker that closes a calibration carries the calibrated speed in the `image_id`
+    /// slot, which a calibration has no other use for.
+    #[test]
+    fn calibration_result_carries_the_speed() {
+        let result = LsLMarkerJson {
+            block: 0,
+            block_type: BlockType::Calibration,
+            trial: 2,
+            state: StateMarker::CalibrationResult,
+            // 4.23 km/h as fixed point.
+            image_id: Some(423),
+            speed: SpeedModifier::None,
+            data: None,
+        };
+        let packed = LsLMarker::from(&result).0;
+        assert_eq!(packed, 0x0000_020B_01A7_0000);
+        assert_eq!((packed >> 16) & 0xFFFF, 423);
+        assert_eq!((packed >> 32) & 0xFF, StateMarker::CalibrationResult as i64);
+    }
+
+    /// A step of a calibration walk, the state alone says what happened to it.
+    #[test]
+    fn calibration_step_markers() {
+        let step = |state| LsLMarkerJson {
+            block: 0,
+            block_type: BlockType::Calibration,
+            trial: 3,
+            state,
+            image_id: None,
+            speed: SpeedModifier::None,
+            data: None,
+        };
+        // Nothing but the state changes between the four moments of a step.
+        for state in [
+            StateMarker::CalibrationStart,
+            StateMarker::CalibrationStop,
+            StateMarker::CalibrationDiscarded,
+            StateMarker::CalibrationConfirmed,
+        ] {
+            let packed = LsLMarker::from(&step(state)).0;
+            assert_eq!(packed >> 56, 0, "a calibration has no block");
+            assert_eq!((packed >> 48) & 0xFF, BlockType::Calibration as i64);
+            assert_eq!((packed >> 40) & 0xFF, 3, "the trial is the step number");
+            assert_eq!((packed >> 32) & 0xFF, state as i64);
+            assert_eq!(packed & 0xFFFF, 0, "no speed and no payload");
+        }
+    }
+
+    /// The frontend sends the state as a string, a rename here would silently break every
+    /// marker it stamps.
+    #[test]
+    fn state_wire_names() {
+        for (state, name) in [
+            (StateMarker::None, "None"),
+            (StateMarker::Baseline, "Baseline"),
+            (StateMarker::Go, "Go"),
+            (StateMarker::RatingArousal, "RatingArousal"),
+            (StateMarker::CalibrationStart, "CalibrationStart"),
+            (StateMarker::CalibrationStop, "CalibrationStop"),
+            (StateMarker::CalibrationDiscarded, "CalibrationDiscarded"),
+            (StateMarker::CalibrationConfirmed, "CalibrationConfirmed"),
+            (StateMarker::CalibrationResult, "CalibrationResult"),
+        ] {
+            let json = format!("\"{name}\"");
+            assert_eq!(serde_json::to_string(&state).unwrap(), json);
+            assert_eq!(serde_json::from_str::<StateMarker>(&json).unwrap(), state);
+        }
     }
 
     /// The frontend sends the speed as a snake_case string, the marker stores the ordinal.
@@ -175,10 +246,10 @@ pub enum SpeedModifier {
     VeryFast = 5,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 pub enum StateMarker {
-    // Special state for 'blocks' that have no state like calibration or pause
+    // Special state for 'blocks' that have no state like a pause
     None = 0,
     Baseline = 1,
     Stimulus = 2,
@@ -186,6 +257,13 @@ pub enum StateMarker {
     RatingPrompt = 4,
     RatingValance = 5,
     RatingArousal = 6,
+    // The states below only ever appear with `block_type == calibration`.
+    CalibrationStart = 7,
+    CalibrationStop = 8,
+    CalibrationDiscarded = 9,
+    CalibrationConfirmed = 10,
+    // Closes a calibration, its `image_id` slot holds the calibrated speed.
+    CalibrationResult = 11,
 }
 
 // All currently supported Block types. Calibration, Test and Session are not technically blocks
@@ -207,14 +285,12 @@ pub enum BlockType {
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub enum MarkerPayload {
     Rating(u8),
-    CalibrationFlag(bool),
 }
 
 impl MarkerPayload {
     fn data(&self) -> u8 {
         match self {
             MarkerPayload::Rating(r) => *r,
-            MarkerPayload::CalibrationFlag(f) => *f as u8,
         }
     }
 }

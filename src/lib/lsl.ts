@@ -18,13 +18,22 @@ export interface LsLMarkerJson extends Record<string, unknown> {
 	data?: Record<string, number>
 }
 
-type StateMarker = "None" |
+/**
+ * The phase a marker belongs to. The `Calibration*` values only ever appear on a marker whose
+ * `block_type` is `calibration`.
+ */
+export type StateMarker = "None" |
 	"Baseline" |
 	"Stimulus" |
 	"Go" |
 	"RatingPrompt" |
 	"RatingValance" |
-	"RatingArousal";
+	"RatingArousal" |
+	"CalibrationStart" |
+	"CalibrationStop" |
+	"CalibrationDiscarded" |
+	"CalibrationConfirmed" |
+	"CalibrationResult";
 
 /** Everything about a marker that the trial itself does not determine. */
 export interface MarkerDetails {
@@ -54,6 +63,38 @@ export function eventFromTrial(trial: PlannedTrial, state: StateMarker, details:
 	}
 }
 
+/** The largest value the 16 bit `image_id` slot can hold. */
+const MAX_IMAGE_ID = 65535;
+
+export interface CalibrationDetails {
+	/** Calibrated speed in km/h, only on the `CalibrationResult` marker. */
+	result_speed?: number
+}
+
+/**
+ * A marker of the speed calibration, which has no block and no trial plan of its own: the trial
+ * is the calibration step and the state alone says what happened to it.
+ *
+ * A calibration has no image, so the `image_id` slot carries the calibrated speed as km/h * 100.
+ * Two decimals is exactly what the value has, and the 8 bit payload could not hold it.
+ */
+export function calibrationMarker(step: number, state: StateMarker, details: CalibrationDetails = {}): LsLMarkerJson {
+	// A mis-measured step can produce an absurd speed, and anything above the slot's range would
+	// fail to deserialize into a u16 and reject the whole marker.
+	const speed_fixed_point = details.result_speed === undefined
+		? undefined
+		: Math.min(MAX_IMAGE_ID, Math.max(0, Math.round(details.result_speed * 100)));
+
+	return {
+		block: 0,
+		block_type: "calibration",
+		trial: step,
+		state,
+		image_id: speed_fixed_point,
+		speed: "none"
+	}
+}
+
 /** Marks the start of a session. It belongs to no block and no trial. */
 export function sessionMarker(): LsLMarkerJson {
 	return {
@@ -67,4 +108,12 @@ export function sessionMarker(): LsLMarkerJson {
 
 export async function publish_event(event: LsLMarkerJson) {
 	await invoke("publish_lsl", { event });
+}
+
+/**
+ * Publishes without blocking the caller, for the synchronous event handlers of the calibration.
+ * Those drive a timer and must not wait on an IPC round trip.
+ */
+export function publish_event_detached(event: LsLMarkerJson): void {
+	publish_event(event).catch((e) => console.error("Failed to publish an LsL marker", e));
 }

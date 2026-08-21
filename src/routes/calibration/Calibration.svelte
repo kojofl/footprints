@@ -3,6 +3,7 @@
 	import CircleStop from "@lucide/svelte/icons/circle-stop";
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
     import { invoke } from "@tauri-apps/api/core";
+	import { calibrationMarker, publish_event_detached } from "$lib/lsl.js";
 
 	interface Props {
 		steps: number;
@@ -32,6 +33,8 @@
 	);
 
 	function start() {
+		// Detached, so the walk timer below is armed without waiting on the IPC round trip.
+		publish_event_detached(calibrationMarker(step, "CalibrationStart"));
 		let last_time = performance.now();
 		invoke("play_sound");
 
@@ -44,6 +47,7 @@
 	}
 
 	function stop() {
+		publish_event_detached(calibrationMarker(step, "CalibrationStop"));
 		if (frame) {
 			cancelAnimationFrame(frame);
 			frame = undefined;
@@ -67,17 +71,25 @@
 	}
 
 	function discard_step() {
+		publish_event_detached(calibrationMarker(step, "CalibrationDiscarded"));
 		elapsed = 0;
 		open_decider = false;
 	}
 
 	function confirm_step() {
+		publish_event_detached(calibrationMarker(step, "CalibrationConfirmed"));
 		step_speeds.push(step_speed);
 		if (step === steps) {
 			speed = Number(
 				(
 					step_speeds.reduce((a, b) => a + b) / step_speeds.length
 				).toFixed(2),
+			);
+			// The calibration is done, put its result into the recording while it is in hand.
+			publish_event_detached(
+				calibrationMarker(step, "CalibrationResult", {
+					result_speed: speed,
+				}),
 			);
 			openState = false;
 		}
