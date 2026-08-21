@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Settings } from "$lib/settings_state.js";
+	import type { Duration } from "$lib/durations.js";
 	import type { MyEvents, MyStates } from "$lib/state_machine.js";
 	import { invoke } from "@tauri-apps/api/core";
 	import type { FiniteStateMachine } from "runed";
@@ -7,10 +8,7 @@
 	interface Props {
 		w: number;
 		y: number;
-		duration: {
-			name: string;
-			time: number;
-		};
+		duration: Duration;
 		state_machine: FiniteStateMachine<MyStates, MyEvents>;
 		/** Edge length of the square the triangle is drawn into. */
 		size?: number;

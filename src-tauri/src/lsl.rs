@@ -20,8 +20,8 @@ pub struct LsL {
 // trial, `test` marks a practice run, and only `calibration` and a `stimulus` rating carry data.
 // This encoded marker is published by the App to LsL.
 // Encoding:
-// 8bit   | 8bit       | 8bit  | 8bit   | 16bit      | 16bit
-// block  | block_type | trial | state  | image_id   | data
+// 8bit   | 8bit       | 8bit  | 8bit   | 16bit      | 8bit  | 8bit
+// block  | block_type | trial | state  | image_id   | speed | data
 #[derive(Debug, Clone, Copy)]
 struct LsLMarker(i64);
 
@@ -33,6 +33,7 @@ impl From<&LsLMarkerJson> for LsLMarker {
         v |= (value.trial as i64) << 40;
         v |= (value.state as i64) << 32;
         v |= (value.image_id.unwrap_or(0) as i64) << 16;
+        v |= (value.speed as i64) << 8;
         v |= value.data.map(|v| v.data()).unwrap_or(0) as i64;
         Self(v)
     }
@@ -43,7 +44,7 @@ mod tests {
     use super::*;
 
     /// Packs a marker and checks it against the layout documented on `LsLMarker`:
-    /// `block | block_type | trial | state | image_id | data`.
+    /// `block | block_type | trial | state | image_id | speed | data`.
     #[test]
     fn marker_repr() {
         let stimulus = LsLMarkerJson {
@@ -52,9 +53,10 @@ mod tests {
             trial: 1,
             state: StateMarker::Baseline,
             image_id: Some(50),
+            speed: SpeedModifier::Normal,
             data: None,
         };
-        assert_eq!(LsLMarker::from(&stimulus).0, 0x0101_0101_0032_0000);
+        assert_eq!(LsLMarker::from(&stimulus).0, 0x0101_0101_0032_0300);
 
         // A session start has neither block nor trial, only the type tells it apart.
         let session = LsLMarkerJson {
@@ -63,6 +65,7 @@ mod tests {
             trial: 0,
             state: StateMarker::None,
             image_id: None,
+            speed: SpeedModifier::None,
             data: None,
         };
         assert_eq!(LsLMarker::from(&session).0, 0x0005_0000_0000_0000);
@@ -74,9 +77,45 @@ mod tests {
             trial: 3,
             state: StateMarker::RatingArousal,
             image_id: Some(1 << 14 | 5),
+            speed: SpeedModifier::VeryFast,
             data: Some(MarkerPayload::Rating(7)),
         };
-        assert_eq!(LsLMarker::from(&test_rating).0, 0x0104_0306_4005_0007);
+        assert_eq!(LsLMarker::from(&test_rating).0, 0x0104_0306_4005_0507);
+    }
+
+    /// `speed` and `data` share the low 16 bits, a payload wider than a byte would run into
+    /// the speed above it.
+    #[test]
+    fn speed_and_payload_do_not_overlap() {
+        let marker = LsLMarkerJson {
+            block: 1,
+            block_type: BlockType::Calibration,
+            trial: 1,
+            state: StateMarker::None,
+            image_id: None,
+            speed: SpeedModifier::VerySlow,
+            data: Some(MarkerPayload::CalibrationFlag(true)),
+        };
+        let packed = LsLMarker::from(&marker).0;
+        assert_eq!((packed >> 8) & 0xFF, SpeedModifier::VerySlow as i64);
+        assert_eq!(packed & 0xFF, 1);
+    }
+
+    /// The frontend sends the speed as a snake_case string, the marker stores the ordinal.
+    #[test]
+    fn speed_wire_names() {
+        for (speed, name) in [
+            (SpeedModifier::None, "none"),
+            (SpeedModifier::VerySlow, "very_slow"),
+            (SpeedModifier::Slow, "slow"),
+            (SpeedModifier::Normal, "normal"),
+            (SpeedModifier::Fast, "fast"),
+            (SpeedModifier::VeryFast, "very_fast"),
+        ] {
+            let json = format!("\"{name}\"");
+            assert_eq!(serde_json::to_string(&speed).unwrap(), json);
+            assert_eq!(serde_json::from_str::<SpeedModifier>(&json).unwrap(), speed);
+        }
     }
 
     /// The frontend sends the block type as a lowercase string, a rename here would silently
@@ -113,8 +152,27 @@ pub struct LsLMarkerJson {
     state: StateMarker,
     // Image Id if there it's a Stimulus trial else 0
     image_id: Option<u16>,
+    // Walking condition of the trial, `None` wherever there is no walking
+    #[serde(default)]
+    speed: SpeedModifier,
     // data depending on the block_type in combination with state refer to it's doc
     data: Option<MarkerPayload>,
+}
+
+// The walking condition of a trial. Ordered slowest to fastest so the value can be read as an
+// ordinal, `None` covers the markers that involve no walking at all: a pause, a session start
+// and a calibration run.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
+#[repr(u8)]
+#[serde(rename_all = "snake_case")]
+pub enum SpeedModifier {
+    #[default]
+    None = 0,
+    VerySlow = 1,
+    Slow = 2,
+    Normal = 3,
+    Fast = 4,
+    VeryFast = 5,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
@@ -145,7 +203,7 @@ pub enum BlockType {
 }
 
 // The marker payload (ignoring the tag since the block type implies the paylode type)
-// may only ever be 16 bit or smaller.
+// may only ever be 8 bit or smaller, the upper half of its former 16 bit slot holds the speed.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub enum MarkerPayload {
     Rating(u8),
@@ -153,10 +211,10 @@ pub enum MarkerPayload {
 }
 
 impl MarkerPayload {
-    fn data(&self) -> u16 {
+    fn data(&self) -> u8 {
         match self {
-            MarkerPayload::Rating(r) => *r as u16,
-            MarkerPayload::CalibrationFlag(f) => *f as u16,
+            MarkerPayload::Rating(r) => *r,
+            MarkerPayload::CalibrationFlag(f) => *f as u8,
         }
     }
 }

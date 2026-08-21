@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { BlockKind, PlannedTrial } from "./blocks_state.js";
+import type { SpeedKind } from "./durations.js";
 
 /**
  * Which kind of run a marker belongs to. `calibration`, `test` and `session` are not blocks of
@@ -13,6 +14,7 @@ export interface LsLMarkerJson extends Record<string, unknown> {
 	trial: number,
 	state: StateMarker,
 	image_id?: number,
+	speed?: SpeedKind,
 	data?: Record<string, number>
 }
 
@@ -24,19 +26,31 @@ type StateMarker = "None" |
 	"RatingValance" |
 	"RatingArousal";
 
-/**
- * A marker for one trial of the plan. `block_type` overrides the trial's own kind, which a test
- * run needs: its plan holds ordinary stimulus trials, only the recording must not confuse them
- * with the real thing.
- */
-export function eventFromTrial(trial: PlannedTrial, state: StateMarker, img_data?: number, data?: Record<string, number>, block_type?: MarkerBlockType): LsLMarkerJson {
+/** Everything about a marker that the trial itself does not determine. */
+export interface MarkerDetails {
+	/** Stimulus image of the trial, left out on trials that show none. */
+	image_id?: number,
+	/** Walking condition of the trial, defaults to `none` for the slots without walking. */
+	speed?: SpeedKind,
+	/** Payload, externally tagged to match the Rust `MarkerPayload`, e.g. `{ Rating: 5 }`. */
+	data?: Record<string, number>,
+	/**
+	 * Overrides the trial's own kind, which a test run needs: its plan holds ordinary stimulus
+	 * trials, only the recording must not confuse them with the real thing.
+	 */
+	block_type?: MarkerBlockType
+}
+
+/** A marker for one trial of the plan. */
+export function eventFromTrial(trial: PlannedTrial, state: StateMarker, details: MarkerDetails = {}): LsLMarkerJson {
 	return {
 		block: trial.block + 1,
-		block_type: block_type ?? trial.kind,
+		block_type: details.block_type ?? trial.kind,
 		trial: trial.trial_in_block + 1,
 		state,
-		image_id: img_data,
-		data
+		image_id: details.image_id,
+		speed: details.speed ?? "none",
+		data: details.data
 	}
 }
 
@@ -46,7 +60,8 @@ export function sessionMarker(): LsLMarkerJson {
 		block: 0,
 		block_type: "session",
 		trial: 0,
-		state: "None"
+		state: "None",
+		speed: "none"
 	}
 }
 

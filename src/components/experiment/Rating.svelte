@@ -93,15 +93,12 @@
 		try {
 			if (step == 0) {
 				await publish_event(
-					eventFromTrial(
-						props.current_trial,
-						"RatingValance",
-						props.img_id,
-						{
-							Rating: valence_rating!,
-						},
-						props.marker_block_type,
-					),
+					eventFromTrial(props.current_trial, "RatingValance", {
+						image_id: props.img_id,
+						speed: props.duration.kind,
+						data: { Rating: valence_rating! },
+						block_type: props.marker_block_type,
+					}),
 				);
 				if (Settings.current.rating.arousal) {
 					step++;
@@ -114,15 +111,12 @@
 				}
 			} else {
 				await publish_event(
-					eventFromTrial(
-						props.current_trial,
-						"RatingArousal",
-						props.img_id,
-						{
-							Rating: arousal_rating!,
-						},
-						props.marker_block_type,
-					),
+					eventFromTrial(props.current_trial, "RatingArousal", {
+						image_id: props.img_id,
+						speed: props.duration.kind,
+						data: { Rating: arousal_rating! },
+						block_type: props.marker_block_type,
+					}),
 				);
 				done = true;
 				props.state_machine.send("rated", {
