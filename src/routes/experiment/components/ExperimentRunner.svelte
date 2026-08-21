@@ -8,12 +8,11 @@
 	import Baseline from "$components/experiment/Baseline.svelte";
 	import { fly } from "svelte/transition";
 	import { quintOut } from "svelte/easing";
-	import { LsLEvent, publish_event } from "$lib/lsl.js";
 	import {
 		create_state_machine,
 		ExperimentIteration,
 	} from "$lib/state_machine.js";
-	import { resource } from "runed";
+	import { TrialImages } from "$lib/trial_images.svelte.js";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { Settings } from "$lib/settings_state.js";
 	import { Blocks, build_trial_plan } from "$lib/blocks_state.js";
@@ -24,13 +23,6 @@
 		length: number;
 	}
 
-	interface Image {
-		name: string;
-		valence: "Low" | "High";
-		arousal: "Low" | "High";
-		data: any;
-	}
-
 	let { openState = $bindable(), ...data }: Experiment = $props();
 
 	let running = $state(false);
@@ -38,35 +30,8 @@
 	// Resolved once: the block configuration must not change under a running experiment.
 	const plan = build_trial_plan(Blocks.current);
 
-	// Reset image pool at experiment start
-	invoke("reset_images");
-
-	const img_data = resource(
-		() => ExperimentIteration.current,
-		async (iteration, _prev, { data, onCleanup }) => {
-			onCleanup(() => {
-				if (data?.url) {
-					URL.revokeObjectURL(data.url);
-				}
-			});
-
-			// Only stimulus trials show an image; neutral trials (fixation cross) and
-			// pauses must not take an image out of the pool.
-			if (plan[iteration]?.kind !== "stimulus") {
-				return undefined;
-			}
-
-			const img: Image = await invoke("get_image");
-			let buffer = new Uint8Array(img.data).buffer;
-			const blob = new Blob([buffer], { type: "image/webp" });
-			return {
-				name: img.name,
-				valence: img.valence,
-				arousal: img.arousal,
-				url: URL.createObjectURL(blob),
-			};
-		},
-	);
+	// Owns the stimulus image of the running trial and resets the pool on construction.
+	const images = new TrialImages(plan);
 
 	const StateMap = {
 		baseline: Baseline,
@@ -84,14 +49,6 @@
 		openState = false;
 	}
 
-	const experiment_state_machine = create_state_machine(close, plan);
-	let signal = $derived(experiment_state_machine.current === "go");
-
-	// Nothing to run, the block configuration is empty.
-	if (plan.length === 0) {
-		close();
-	}
-
 	// One duration per planned trial, with the speed conditions balanced inside every block.
 	// Fixed for the whole run, like the plan it is aligned with.
 	const durations = balanced_durations(
@@ -102,6 +59,14 @@
 		),
 		plan,
 	);
+	const experiment_state_machine = create_state_machine(
+		close,
+		plan,
+		durations,
+		images,
+	);
+	let signal = $derived(experiment_state_machine.current === "go");
+
 	// `durations` is index aligned with the plan, so the trial counter indexes it directly.
 	// The clamp only matters for the frame after the last trial, before the modal closes.
 	let index = $derived(
@@ -110,12 +75,11 @@
 
 	let State = $derived(StateMap[experiment_state_machine.current]);
 
+	let current_trial = $derived(plan[ExperimentIteration.current]);
+
 	onDestroy(async () => {
 		experiment_state_machine.send("cancel");
-		if (img_data.current?.url) {
-			URL.revokeObjectURL(img_data.current.url);
-		}
-		await publish_event(LsLEvent.Idle);
+		images.release();
 	});
 </script>
 
@@ -139,10 +103,12 @@
 				bind:running
 				duration={durations[index]}
 				state_machine={experiment_state_machine}
-				img_valence={img_data.current?.valence}
-				img_arousal={img_data.current?.arousal}
-				img_name={img_data.current?.name}
-				img_url={img_data.current?.url}
+				{current_trial}
+				img_id={images.current?.id}
+				img_valence={images.current?.valence}
+				img_arousal={images.current?.arousal}
+				img_name={images.current?.name}
+				img_url={images.current?.url}
 			/>
 		</div>
 	{/if}

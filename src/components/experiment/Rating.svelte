@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { Rating } from "@skeletonlabs/skeleton-svelte";
 	import type { ExperimentStateProps } from "./types.js";
 	import { Settings } from "$lib/settings_state.js";
-	import { SpeedState } from "$lib/speed_state.js";
-	import { LengthState } from "$lib/length_state.js";
-	import { invoke } from "@tauri-apps/api/core";
+	import { publish_event, eventFromTrial } from "$lib/lsl.js";
 
 	const props: ExperimentStateProps = $props();
 
@@ -16,7 +13,7 @@
 	);
 	let step = $state(Settings.current.rating.valence ? 0 : 1);
 
-	function onKeyDown(e: KeyboardEvent) {
+	async function onKeyDown(e: KeyboardEvent) {
 		switch (e.key) {
 			case "1": {
 				if (step === 0) {
@@ -75,27 +72,64 @@
 				break;
 			}
 			case "Enter": {
-				cont();
+				await cont();
 			}
 		}
 	}
-	function cont() {
-		if (step === 0 && Settings.current.rating.arousal) {
-			step++;
-		} else {
-			props.state_machine.send("rated", {
-				baseline_speed: SpeedState.current,
-				modification: props.duration.name,
-				effective_speed:
-					((LengthState.current as number) /
-						(props.duration.time / 1000)) *
-					3.6,
-				name: props.img_name,
-				n_valence: props.img_valence,
-				n_arousal: props.img_arousal,
-				valence: valence_rating,
-				arousal: arousal_rating,
-			});
+	// `cont` publishes a marker before it advances, and that is an IPC round trip. A second
+	// Enter arriving inside that window would re-enter with the step unchanged and publish the
+	// same rating twice, so only one confirmation may be in flight.
+	let confirming = false;
+	// The screen stays mounted for the duration of its out transition, so it still sees key
+	// presses after the last rating was sent. The state machine ignores the repeated `rated`,
+	// but the marker would go out again, hence the latch.
+	let done = false;
+
+	async function cont() {
+		if (confirming || done) {
+			return;
+		}
+		confirming = true;
+		try {
+			if (step == 0) {
+				await publish_event(
+					eventFromTrial(
+						props.current_trial,
+						"RatingValance",
+						props.img_id,
+						{
+							Rating: valence_rating!,
+						},
+					),
+				);
+				if (Settings.current.rating.arousal) {
+					step++;
+				} else {
+					done = true;
+					props.state_machine.send("rated", {
+						valence: valence_rating,
+						arousal: arousal_rating,
+					});
+				}
+			} else {
+				await publish_event(
+					eventFromTrial(
+						props.current_trial,
+						"RatingArousal",
+						props.img_id,
+						{
+							Rating: arousal_rating!,
+						},
+					),
+				);
+				done = true;
+				props.state_machine.send("rated", {
+					valence: valence_rating,
+					arousal: arousal_rating,
+				});
+			}
+		} finally {
+			confirming = false;
 		}
 	}
 </script>

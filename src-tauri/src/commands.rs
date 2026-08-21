@@ -2,14 +2,16 @@ use tauri::{path::BaseDirectory, AppHandle, Manager, State};
 
 use crate::{
     image_manager::{Image, ImageManager},
-    lsl::{LsLEvent, LsLManager},
+    lsl::{LsLManager, LsLMarkerJson},
 };
-use std::sync::Mutex;
 use rodio::Sink;
+use std::sync::Mutex;
 
 #[tauri::command]
-pub fn get_image(state: State<'_, Mutex<ImageManager>>) -> Image {
-    state.lock().unwrap().get_rand_image().clone()
+pub fn get_image(state: State<'_, Mutex<ImageManager>>) -> (u16, Image) {
+    let mut i = state.lock().unwrap();
+    let (id, img) = i.get_rand_image();
+    (id, img.clone())
 }
 
 #[tauri::command]
@@ -26,10 +28,7 @@ pub fn open_calibration(app: AppHandle) {
 }
 
 #[tauri::command]
-pub fn publish_lsl(
-    event: LsLEvent,
-    state: State<'_, LsLManager>,
-) {
+pub fn publish_lsl(event: LsLMarkerJson, state: State<'_, LsLManager>) {
     state.publish_event(event).expect("Lsl worker crashed");
 }
 
