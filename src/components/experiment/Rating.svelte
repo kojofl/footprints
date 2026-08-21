@@ -100,6 +100,7 @@
 						{
 							Rating: valence_rating!,
 						},
+						props.marker_block_type,
 					),
 				);
 				if (Settings.current.rating.arousal) {
@@ -120,6 +121,7 @@
 						{
 							Rating: arousal_rating!,
 						},
+						props.marker_block_type,
 					),
 				);
 				done = true;

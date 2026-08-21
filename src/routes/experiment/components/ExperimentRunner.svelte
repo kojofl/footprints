@@ -6,6 +6,7 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import { onDestroy } from "svelte";
 	import Baseline from "$components/experiment/Baseline.svelte";
+	import Instruction from "$components/experiment/Instruction.svelte";
 	import { fly } from "svelte/transition";
 	import { quintOut } from "svelte/easing";
 	import {
@@ -25,8 +26,6 @@
 
 	let { openState = $bindable(), ...data }: Experiment = $props();
 
-	let running = $state(false);
-
 	// Resolved once: the block configuration must not change under a running experiment.
 	const plan = build_trial_plan(Blocks.current);
 
@@ -34,6 +33,8 @@
 	const images = new TrialImages(plan);
 
 	const StateMap = {
+		// The instructions precede the first baseline, a test run skips them.
+		instruction: Instruction,
 		baseline: Baseline,
 		stimulus: Ongoing,
 		go: Ongoing,
@@ -100,7 +101,6 @@
 			}}
 		>
 			<State
-				bind:running
 				duration={durations[index]}
 				state_machine={experiment_state_machine}
 				{current_trial}

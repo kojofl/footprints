@@ -16,6 +16,8 @@ pub struct LsL {
 }
 
 // The LsLMarker struct encoding the App events `LsLMarkerJson` in a u64.
+// `block_type` says which of the remaining fields carry meaning: `session` has neither block nor
+// trial, `test` marks a practice run, and only `calibration` and a `stimulus` rating carry data.
 // This encoded marker is published by the App to LsL.
 // Encoding:
 // 8bit   | 8bit       | 8bit  | 8bit   | 16bit      | 16bit
@@ -36,20 +38,67 @@ impl From<&LsLMarkerJson> for LsLMarker {
     }
 }
 
-#[test]
-fn marker_repr() {
-    let test = LsLMarkerJson {
-        block: 1,
-        block_type: BlockType::Stimulus,
-        trial: 1,
-        state: StateMarker::Baseline,
-        image_id: Some(50),
-        data: None,
-    };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    println!("{:?}", serde_json::to_string_pretty(&test));
-    println!("{:#b}", LsLMarker::from(&test).0);
-    println!("{}", 0b0000000000110010);
+    /// Packs a marker and checks it against the layout documented on `LsLMarker`:
+    /// `block | block_type | trial | state | image_id | data`.
+    #[test]
+    fn marker_repr() {
+        let stimulus = LsLMarkerJson {
+            block: 1,
+            block_type: BlockType::Stimulus,
+            trial: 1,
+            state: StateMarker::Baseline,
+            image_id: Some(50),
+            data: None,
+        };
+        assert_eq!(LsLMarker::from(&stimulus).0, 0x0101_0101_0032_0000);
+
+        // A session start has neither block nor trial, only the type tells it apart.
+        let session = LsLMarkerJson {
+            block: 0,
+            block_type: BlockType::Session,
+            trial: 0,
+            state: StateMarker::None,
+            image_id: None,
+            data: None,
+        };
+        assert_eq!(LsLMarker::from(&session).0, 0x0005_0000_0000_0000);
+
+        // Practice run, third trial, arousal rating of 7 on the sixth image of quadrant 1.
+        let test_rating = LsLMarkerJson {
+            block: 1,
+            block_type: BlockType::Test,
+            trial: 3,
+            state: StateMarker::RatingArousal,
+            image_id: Some(1 << 14 | 5),
+            data: Some(MarkerPayload::Rating(7)),
+        };
+        assert_eq!(LsLMarker::from(&test_rating).0, 0x0104_0306_4005_0007);
+    }
+
+    /// The frontend sends the block type as a lowercase string, a rename here would silently
+    /// break every marker it stamps.
+    #[test]
+    fn block_type_wire_names() {
+        for (block_type, name) in [
+            (BlockType::Calibration, "calibration"),
+            (BlockType::Stimulus, "stimulus"),
+            (BlockType::Neutral, "neutral"),
+            (BlockType::Pause, "pause"),
+            (BlockType::Test, "test"),
+            (BlockType::Session, "session"),
+        ] {
+            let json = format!("\"{name}\"");
+            assert_eq!(serde_json::to_string(&block_type).unwrap(), json);
+            assert_eq!(
+                serde_json::from_str::<BlockType>(&json).unwrap() as u8,
+                block_type as u8
+            );
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -81,8 +130,8 @@ pub enum StateMarker {
     RatingArousal = 6,
 }
 
-// All currently supported Block types Calibration is not technically a block but is included
-// so we can mark calibration runs appropriately.
+// All currently supported Block types. Calibration, Test and Session are not technically blocks
+// but are included so we can tell those runs apart from real data.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 #[repr(u8)]
 #[serde(rename_all = "lowercase")]
@@ -91,6 +140,8 @@ pub enum BlockType {
     Stimulus = 1,    // Stimulus with Rating state is the respective rating
     Neutral = 2,     // never has data
     Pause = 3,       // never has data
+    Test = 4,        // practice run opened from the instructions, never real data
+    Session = 5,     // session start, carries neither block nor trial, never has data
 }
 
 // The marker payload (ignoring the tag since the block type implies the paylode type)

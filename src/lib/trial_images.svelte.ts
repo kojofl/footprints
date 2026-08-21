@@ -81,6 +81,16 @@ export class TrialImages {
 		this.#current = next;
 	}
 
+	/**
+	 * Refills the backend pool and re-warms the first trial, discarding whatever is held.
+	 * Used after a test run, which draws from the same pool as the experiment around it.
+	 */
+	reset(): void {
+		this.release();
+		this.#ready = invoke("reset_images");
+		this.prefetch(0);
+	}
+
 	/** Drops the image on screen and any prefetch still in flight. */
 	release(): void {
 		revoke(this.#current);

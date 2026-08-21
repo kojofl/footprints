@@ -33,6 +33,8 @@
 	const images = new TrialImages(plan);
 
 	const StateMap = {
+		// A test run is started from inside the instructions, it never shows them itself.
+		instruction: undefined,
 		baseline: Baseline,
 		stimulus: Ongoing,
 		go: Ongoing,
@@ -63,6 +65,7 @@
 		plan,
 		durations,
 		images,
+		"test",
 	);
 	let signal = $derived(experiment_state_machine.current === "go");
 
@@ -97,10 +100,10 @@
 			}}
 		>
 			<State
-				running={true}
 				duration={durations[index]}
 				state_machine={experiment_state_machine}
 				{current_trial}
+				marker_block_type="test"
 				img_id={images.current?.id}
 				img_valence={images.current?.valence}
 				img_arousal={images.current?.arousal}
