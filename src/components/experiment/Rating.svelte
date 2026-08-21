@@ -93,7 +93,7 @@
 		try {
 			if (step == 0) {
 				await publish_event(
-					eventFromTrial(props.current_trial, "RatingValance", {
+					eventFromTrial(props.current_trial, "RatingValence", {
 						image_id: props.img_id,
 						speed: props.duration.kind,
 						data: { Rating: valence_rating! },

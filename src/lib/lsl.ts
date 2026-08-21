@@ -27,7 +27,7 @@ export type StateMarker = "None" |
 	"Stimulus" |
 	"Go" |
 	"RatingPrompt" |
-	"RatingValance" |
+	"RatingValence" |
 	"RatingArousal" |
 	"CalibrationStart" |
 	"CalibrationStop" |
