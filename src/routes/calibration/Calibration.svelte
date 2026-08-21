@@ -2,6 +2,8 @@
 	import Play from "@lucide/svelte/icons/play";
 	import CircleStop from "@lucide/svelte/icons/circle-stop";
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
+    import { invoke } from "@tauri-apps/api/core";
+	import { calibrationMarker, publish_event_detached } from "$lib/lsl.js";
 
 	interface Props {
 		steps: number;
@@ -31,7 +33,10 @@
 	);
 
 	function start() {
+		// Detached, so the walk timer below is armed without waiting on the IPC round trip.
+		publish_event_detached(calibrationMarker(step, "CalibrationStart"));
 		let last_time = performance.now();
+		invoke("play_sound");
 
 		frame = requestAnimationFrame(function update(time) {
 			frame = requestAnimationFrame(update);
@@ -42,6 +47,7 @@
 	}
 
 	function stop() {
+		publish_event_detached(calibrationMarker(step, "CalibrationStop"));
 		if (frame) {
 			cancelAnimationFrame(frame);
 			frame = undefined;
@@ -65,17 +71,25 @@
 	}
 
 	function discard_step() {
+		publish_event_detached(calibrationMarker(step, "CalibrationDiscarded"));
 		elapsed = 0;
 		open_decider = false;
 	}
 
 	function confirm_step() {
+		publish_event_detached(calibrationMarker(step, "CalibrationConfirmed"));
 		step_speeds.push(step_speed);
 		if (step === steps) {
 			speed = Number(
 				(
 					step_speeds.reduce((a, b) => a + b) / step_speeds.length
 				).toFixed(2),
+			);
+			// The calibration is done, put its result into the recording while it is in hand.
+			publish_event_detached(
+				calibrationMarker(step, "CalibrationResult", {
+					result_speed: speed,
+				}),
 			);
 			openState = false;
 		}
@@ -87,66 +101,80 @@
 
 <svelte:window on:keydown={on_key_down} />
 
-<h2 class="h2 pt-3 text-center">Step {step}/{steps}</h2>
-<div class="fixation-cross-container">
-	<div
-		class="fixation-cross"
-		style="--cross-size: {size}px; --cross-thickness: {thickness}px; --cross-color: {color};"
-	></div>
-</div>
-<div class="flex mt-5 container m-auto justify-center">
-	<Modal
-		open={open_decider}
-		onOpenChange={(e) => (open_decider = e.open)}
-		triggerBase="btn preset-tonal"
-		contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
-		backdropClasses="backdrop-blur-sm"
-	>
-		{#snippet content()}
-			<header class="flex justify-between">
-				<h2 class="h2">Step results</h2>
-			</header>
-			<article>
-				<p class="opacity-60">
-					Time: {(elapsed / 1000).toFixed(2)}s
-				</p>
-				<p class="opacity-60">
-					Length: {length}m
-				</p>
-				<p class="opacity-60">
-					Speed: {step_speed.toFixed(2)}km/h
-				</p>
-			</article>
-			<footer class="flex justify-end gap-4">
-				<button
-					type="button"
-					class="btn preset-tonal"
-					onclick={discard_step}>Discard</button
-				>
-				<button
-					type="button"
-					class="btn preset-filled"
-					onclick={confirm_step}>Confirm</button
-				>
-			</footer>
-		{/snippet}
-	</Modal>
-	{#if running}
-		<button
-			type="button"
-			class="btn-icon preset-filled-error-500"
-			onclick={stop}><CircleStop /></button
+<div
+	class="absolute min-w-screen min-h-screen p-4"
+	class:flash-background={running}
+>
+	<h2 class="h2 pt-3 text-center">Step {step}/{steps}</h2>
+	<div class="fixation-cross-container">
+		<div
+			class="fixation-cross"
+			style="--cross-size: {size}px; --cross-thickness: {thickness}px; --cross-color: {color};"
+		></div>
+	</div>
+	<div class="flex mt-5 container m-auto justify-center">
+		<Modal
+			open={open_decider}
+			onOpenChange={(e) => (open_decider = e.open)}
+			triggerBase="btn preset-tonal"
+			contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+			backdropClasses="backdrop-blur-sm"
 		>
-	{:else}
-		<button
-			type="button"
-			class="btn-icon preset-filled-success-500"
-			onclick={start}><Play /></button
-		>
-	{/if}
+			{#snippet content()}
+				<header class="flex justify-between">
+					<h2 class="h2">Step results</h2>
+				</header>
+				<article>
+					<p class="opacity-60">
+						Time: {(elapsed / 1000).toFixed(2)}s
+					</p>
+					<p class="opacity-60">
+						Length: {length}m
+					</p>
+					<p class="opacity-60">
+						Speed: {step_speed.toFixed(2)}km/h
+					</p>
+				</article>
+				<footer class="flex justify-end gap-4">
+					<button
+						type="button"
+						class="btn preset-tonal"
+						onclick={discard_step}>Discard</button
+					>
+					<button
+						type="button"
+						class="btn preset-filled"
+						onclick={confirm_step}>Confirm</button
+					>
+				</footer>
+			{/snippet}
+		</Modal>
+		{#if running}
+			<button
+				type="button"
+				class="btn-icon preset-filled-error-500"
+				onclick={stop}><CircleStop /></button
+			>
+		{:else}
+			<button
+				type="button"
+				class="btn-icon preset-filled-success-500"
+				onclick={start}><Play /></button
+			>
+		{/if}
+	</div>
 </div>
 
 <style>
+	@keyframes flash {
+		50% {
+			background-color: green;
+		}
+	}
+
+	.flash-background {
+		animation: flash 600ms ease-out 1;
+	}
 	.fixation-cross-container {
 		background-color: white;
 		display: flex;

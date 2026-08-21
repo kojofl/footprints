@@ -1,4 +1,5 @@
 use crate::image_manager::Magnitude;
+use crate::lsl::{BlockType, SpeedModifier};
 use chrono::{DateTime, Local};
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -24,6 +25,9 @@ pub fn add_rating(rating: Rating, state: State<'_, Mutex<Logger>>) {
     let mut logger = state.lock().unwrap();
     let data = LogData {
         time: Local::now(),
+        block: rating.block,
+        trial_in_block: rating.trial_in_block,
+        block_type: rating.block_type,
         baseline_speed: rating.baseline_speed,
         modification: rating.modification,
         modified_speed: rating.effective_speed,
@@ -73,44 +77,92 @@ pub fn save_experiment(study: String, state: State<'_, Mutex<Logger>>, app: AppH
 
 #[derive(Deserialize)]
 pub struct Rating {
-    baseline_time: DateTime<Local>,
-    stimulus_time: DateTime<Local>,
-    go_time: DateTime<Local>,
-    rating_time: DateTime<Local>,
-    baseline_speed: f64,
-    modification: SpeedModification,
-    effective_speed: f64,
-    name: String,
-    n_valence: Magnitude,
-    n_arousal: Magnitude,
+    /// 1 based index of the block this trial belongs to.
+    block: usize,
+    /// 1 based index of the trial inside its block.
+    trial_in_block: usize,
+    /// Which kind of block the row belongs to, the same type the LsL marker carries.
+    block_type: BlockType,
+    // A pause has no phases, no walking and nothing to rate, so it fills none of these.
+    baseline_time: Option<DateTime<Local>>,
+    stimulus_time: Option<DateTime<Local>>,
+    go_time: Option<DateTime<Local>>,
+    rating_time: Option<DateTime<Local>>,
+    baseline_speed: Option<f64>,
+    modification: SpeedModifier,
+    effective_speed: Option<f64>,
+    // The image fields are absent on trials without a stimulus, those show a fixation cross
+    // and are not rated.
+    name: Option<String>,
+    n_valence: Option<Magnitude>,
+    n_arousal: Option<Magnitude>,
     valence: Option<u8>,
     arousal: Option<u8>,
 }
 
+// The field order is the CSV column order. Everything a pause does not have is optional and
+// comes out as an empty cell.
 #[derive(Serialize, Debug)]
 struct LogData {
     time: DateTime<Local>,
-    baseline_time: DateTime<Local>,
-    stimulus_time: DateTime<Local>,
-    go_time: DateTime<Local>,
-    rating_time: DateTime<Local>,
-    baseline_speed: f64,
-    modification: SpeedModification,
-    modified_speed: f64,
-    picture: String,
-    n_valence: Magnitude,
-    n_arousal: Magnitude,
+    block: usize,
+    trial_in_block: usize,
+    block_type: BlockType,
+    baseline_time: Option<DateTime<Local>>,
+    stimulus_time: Option<DateTime<Local>>,
+    go_time: Option<DateTime<Local>>,
+    rating_time: Option<DateTime<Local>>,
+    baseline_speed: Option<f64>,
+    modification: SpeedModifier,
+    modified_speed: Option<f64>,
+    picture: Option<String>,
+    n_valence: Option<Magnitude>,
+    n_arousal: Option<Magnitude>,
     valence: Option<u8>,
     arousal: Option<u8>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-enum SpeedModification {
-    #[serde(rename = "Very slow")]
-    VerySlow,
-    Slow,
-    Normal,
-    Fast,
-    #[serde(rename = "Very fast")]
-    VeryFast,
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A pause row carries nothing but its position, every other column has to come out empty.
+    /// The frontend simply leaves those keys out, so this pins that a missing key is `None`
+    /// rather than a deserialize error.
+    #[test]
+    fn pause_row_needs_only_its_position() {
+        let json = r#"{
+            "block": 2,
+            "trial_in_block": 1,
+            "block_type": "pause",
+            "modification": "none"
+        }"#;
+        let rating: Rating = serde_json::from_str(json).unwrap();
+        assert_eq!(rating.block, 2);
+        assert!(rating.baseline_time.is_none());
+        assert!(rating.rating_time.is_none());
+        assert!(rating.baseline_speed.is_none());
+        assert!(rating.effective_speed.is_none());
+        assert!(rating.name.is_none());
+    }
+
+    /// The speed reads the same in the log as it does in the marker.
+    #[test]
+    fn trial_row_speed_matches_the_marker() {
+        let json = r#"{
+            "block": 1,
+            "trial_in_block": 3,
+            "block_type": "neutral",
+            "baseline_time": "2026-08-21T10:00:00+02:00",
+            "stimulus_time": "2026-08-21T10:00:02+02:00",
+            "go_time": "2026-08-21T10:00:05+02:00",
+            "rating_time": "2026-08-21T10:00:09+02:00",
+            "baseline_speed": 4.0,
+            "modification": "very_slow",
+            "effective_speed": 3.3
+        }"#;
+        let rating: Rating = serde_json::from_str(json).unwrap();
+        assert_eq!(rating.modification, SpeedModifier::VerySlow);
+        assert!(rating.valence.is_none());
+    }
 }

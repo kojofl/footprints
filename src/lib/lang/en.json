@@ -38,8 +38,8 @@
             },
             "phase_3": {
                 "h2": "Phase 3: Movement",
-                "p1": "A signal, <b>auditory and visual</b>, will signal you to start walking. The <b>target speed</b> is given to you by an <b>animated figure</b>. The <b>speed</b> can <b>vary</b> from trial to trial.",
-                "p2": "Once you have arrived at a <b>marker</b>, shortly before the screens, you have <b>3 seconds to turn around</b>. After these 3 seconds, an <b>audio signal</b>, as well as the figure, will signal you to <b>start walking</b> again. <br /> This sequence repeats <b>2 times</b>. After the 2nd time, stop in the <b>middle</b>."
+                "p1": "A signal, <b>auditory and visual</b>, will signal you to start walking. The <b>target speed</b> is given to you by a <b>moving pointer</b> on the screen. The <b>speed</b> can <b>vary</b> from trial to trial.",
+                "p2": "Once you have arrived at a <b>marker</b>, shortly before the screens, you have <b>3 seconds to turn around</b>. After these 3 seconds, an <b>audio signal</b>, as well as the pointer, will signal you to <b>start walking</b> again. <br /> This sequence repeats <b>2 times</b>. After the 2nd time, stop in the <b>middle</b>."
             },
             "phase_4": {
                 "h2": "Phase 4: Rating",
@@ -51,5 +51,11 @@
             "p1": "Some images may be disturbing to some people (e.g., war, violence, injuries, nudity, or depictions that trigger anxiety in some individuals).",
             "b": "Ready? Press Enter to start the experiment. Press T for a test run."
         }
+    },
+    "confirm": {
+        "continue": "Press Enter to continue"
+    },
+    "pause": {
+        "continue": "Break between blocks. Press Enter to continue."
     }
 }

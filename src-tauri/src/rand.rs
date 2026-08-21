@@ -1,6 +1,5 @@
 use rand::{rng, Rng};
 use std::{
-    f64::EPSILON,
     fmt::Debug,
     mem::{self, MaybeUninit},
 };
@@ -50,7 +49,7 @@ impl<const S: usize> AliasBuilder<S> {
         let mut containers = [MaybeUninit::<Container>::uninit(); S];
         while let Some((thresh, pos)) = self.small.pop() {
             let rest = 1.0 - thresh;
-            if rest > EPSILON {
+            if rest > f64::EPSILON {
                 let (mut p, i) = self.big.pop().expect("large counterpart");
                 containers[pos] = MaybeUninit::new(Container { value: i, thresh });
                 p -= rest;
@@ -75,7 +74,7 @@ impl<const S: usize> AliasBuilder<S> {
 
 impl<const S: usize> Alias<S> {
     pub fn new(dist: &[f64; S]) -> Self {
-        assert!(1.0 - dist.iter().sum::<f64>() < EPSILON);
+        assert!(1.0 - dist.iter().sum::<f64>() < f64::EPSILON);
         let builder = AliasBuilder::new(dist);
         println!("{:?}", builder);
 

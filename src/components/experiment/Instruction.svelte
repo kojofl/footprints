@@ -4,12 +4,11 @@
 	import TestRunner from "$routes/experiment/components/TestRunner.svelte";
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
 	import { _ } from "svelte-i18n";
+	import type { ExperimentStateProps } from "./types.js";
 
-	interface Props {
-		cb: () => Promise<void>;
-	}
-
-	const { cb }: Props = $props();
+	// The instructions are a state of their own rather than a part of the baseline, so that the
+	// baseline marker is stamped when the fixation cross appears and not when this screen opens.
+	const props: ExperimentStateProps = $props();
 
 	let step = $state(0);
 	let test_open = $state(false);
@@ -22,7 +21,7 @@
 			case "Enter": {
 				if (step == 5) {
 					// start exp
-					await cb();
+					props.state_machine.send("instructed");
 				} else if (!Settings.current.rating.arousal && !Settings.current.rating.valence && step == 1) {
 					step += 3;
 				} else if ((!Settings.current.rating.valence && step == 1) ||
@@ -105,7 +104,14 @@
 </div>
 <Modal
 	open={test_open}
-	onOpenChange={(e) => (test_open = e.open)}
+	onOpenChange={(e) => {
+		test_open = e.open;
+		// A test run shares the trial counter and the image pool with the experiment around
+		// it, the state machine has to put both back.
+		if (!e.open) {
+			props.state_machine.send("test_finished");
+		}
+	}}
 	contentBase="card bg-surface-100-900 space-y-4 shadow-xl min-w-screen min-h-screen"
 	backdropClasses="backdrop-blur-sm"
 >

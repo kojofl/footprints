@@ -1,60 +1,48 @@
 <script lang="ts">
 	import Ongoing from "$components/experiment/Ongoing.svelte";
 	import Rating from "$components/experiment/Rating.svelte";
+	import Confirm from "$components/experiment/Confirm.svelte";
+	import Pause from "$components/experiment/Pause.svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import { onDestroy } from "svelte";
 	import Baseline from "$components/experiment/Baseline.svelte";
 	import { fly } from "svelte/transition";
 	import { quintOut } from "svelte/easing";
-	import { LsLEvent, publish_event } from "$lib/lsl.js";
 	import {
 		create_state_machine,
 		ExperimentIteration,
 	} from "$lib/state_machine.js";
-	import { resource, watch } from "runed";
+	import { TrialImages } from "$lib/trial_images.svelte.js";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { Settings } from "$lib/settings_state.js";
+	import { build_trial_plan } from "$lib/blocks_state.js";
+	import { balanced_durations, speed_conditions } from "$lib/durations.js";
 
 	interface Experiment {
 		openState: boolean;
 		length: number;
 	}
 
-	interface Image {
-		name: string;
-		valence: "Low" | "High";
-		arousal: "Low" | "High";
-		data: any;
-	}
-
 	let { openState = $bindable(), ...data }: Experiment = $props();
 
-	const img_data = resource(
-		() => ExperimentIteration.current,
-		async (_url, _prev_url, { data, onCleanup }) => {
-			onCleanup(() => {
-				URL.revokeObjectURL(data);
-			});
+	// The test run is always a single short block with a stimulus, independent of the
+	// configured blocks.
+	const plan = build_trial_plan([{ kind: "stimulus", trials: 3 }]);
 
-			const img: Image = await invoke("get_image", {
-				init: ExperimentIteration.current === 0,
-			});
-			let buffer = new Uint8Array(img.data).buffer;
-			const blob = new Blob([buffer], { type: "image/webp" });
-			return {
-				name: img.name,
-				valence: img.valence,
-				arousal: img.arousal,
-				url: URL.createObjectURL(blob),
-			};
-		},
-	);
+	// Owns the stimulus image of the running trial and resets the pool on construction.
+	const images = new TrialImages(plan);
 
 	const StateMap = {
+		// A test run is started from inside the instructions, it never shows them itself.
+		instruction: undefined,
 		baseline: Baseline,
 		stimulus: Ongoing,
 		go: Ongoing,
 		rating: Rating,
+		confirm: Confirm,
+		pause: Pause,
+		// The canceled state intentionally renders nothing, see `create_state_machine`.
+		canceled: undefined,
 	};
 
 	function close() {
@@ -64,94 +52,66 @@
 		openState = false;
 	}
 
-	const experiment_state_machine = create_state_machine(close, 3);
+	const durations = balanced_durations(
+		speed_conditions(
+			data.length,
+			SpeedState.current as number,
+			Settings.current,
+		),
+		plan,
+	);
+	const experiment_state_machine = create_state_machine(
+		close,
+		plan,
+		durations,
+		images,
+		"test",
+	);
 	let signal = $derived(experiment_state_machine.current === "go");
 
-	function expandArray(arr: any[], n: number) {
-		const repeats = Math.ceil(n / arr.length);
-
-		return arr.flatMap((element) => Array(repeats).fill(element));
-	}
-
-	let durations = (() => {
-		let base = [
-			{
-				name: "Normal",
-				time:
-					(data.length / ((SpeedState.current as number) / 3.6)) *
-					1000,
-			},
-		];
-		const mask: [boolean, string, number][] = [
-			[Settings.current.very_slow, "Very slow", 1.2],
-			[Settings.current.slow, "Slow", 1.1],
-			[Settings.current.fast, "Fast", 0.9],
-			[Settings.current.very_fast, "Very fast", 0.8],
-		];
-		for (const el of mask) {
-			if (el[0]) {
-				base.push({
-					name: el[1],
-					time: base[0].time * el[2],
-				});
-			}
-		}
-		let arr = expandArray(base, 3);
-		for (var i = arr.length - 1; i > 0; i--) {
-			var j = Math.floor(Math.random() * (i + 1));
-			var temp = arr[i];
-			arr[i] = arr[j];
-			arr[j] = temp;
-		}
-		return arr;
-	})();
-	let index = $state(0);
-	watch(
-		() => ExperimentIteration.current,
-		() => {
-			index += 1;
-			if (index >= durations.length) {
-				experiment_state_machine.send("cancel");
-			}
-		},
+	let index = $derived(
+		Math.min(ExperimentIteration.current, durations.length - 1),
 	);
 
 	let State = $derived(StateMap[experiment_state_machine.current]);
 
+	let current_trial = $derived(plan[ExperimentIteration.current]);
+
 	onDestroy(async () => {
 		experiment_state_machine.send("cancel");
-		if (img_data.current?.url) {
-			URL.revokeObjectURL(img_data.current!.url);
-		}
-		await publish_event(LsLEvent.Idle);
+		images.release();
 	});
 </script>
 
 {#key State}
-	<div
-		class="absolute min-w-screen min-h-screen p-4"
-		class:flash-background={signal}
-		in:fly={{
-			x: 200,
-			duration: 500,
-			easing: quintOut,
-		}}
-		out:fly={{
-			x: -200,
-			duration: 500,
-			easing: quintOut,
-		}}
-	>
-		<State
-			running={true}
-			duration={durations[index]}
-			state_machine={experiment_state_machine}
-			img_valence={img_data.current?.valence}
-			img_arousal={img_data.current?.arousal}
-			img_name={img_data.current?.name}
-			img_url={img_data.current?.url}
-		/>
-	</div>
+	{#if State}
+		<div
+			class="absolute min-w-screen min-h-screen p-4"
+			class:flash-background={signal}
+			in:fly={{
+				x: 200,
+				duration: 500,
+				easing: quintOut,
+			}}
+			out:fly={{
+				x: -200,
+				duration: 500,
+				easing: quintOut,
+			}}
+		>
+			<State
+				duration={durations[index]}
+				state_machine={experiment_state_machine}
+				{current_trial}
+				marker_block_type="test"
+				img_id={images.current?.id}
+				img_valence={images.current?.valence}
+				img_arousal={images.current?.arousal}
+				img_name={images.current?.name}
+				img_url={images.current?.url}
+			/>
+		</div>
+	{/if}
 {/key}
 
 <style>

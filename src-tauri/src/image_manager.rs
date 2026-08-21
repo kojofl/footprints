@@ -1,7 +1,9 @@
+use std::ffi::OsString;
 use std::fs;
+use std::path::Path;
 
 use crate::rand::Alias;
-use anyhow::{Context, Result};
+use anyhow::{ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use tauri::{path::BaseDirectory, AppHandle, Manager};
 
@@ -56,18 +58,22 @@ impl State {
 
     fn pick(&mut self, bucket: usize) -> usize {
         let index: u64 = rand::random();
-        let idx_bucket = match bucket {
-            0 => &mut self.valid_idx_ll,
-            1 => &mut self.valid_idx_lh,
-            2 => &mut self.valid_idx_hl,
-            3 => &mut self.valid_idx_hh,
+        let (idx_bucket, len) = match bucket {
+            0 => (&mut self.valid_idx_ll, self.ll),
+            1 => (&mut self.valid_idx_lh, self.lh),
+            2 => (&mut self.valid_idx_hl, self.hl),
+            3 => (&mut self.valid_idx_hh, self.hh),
             _ => unreachable!(),
         };
+        // Refill idx if experiment runs for too long.
+        if idx_bucket.is_empty() {
+            idx_bucket.extend(0..len);
+        }
         idx_bucket.swap_remove(index as usize % idx_bucket.len())
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub enum Magnitude {
     Low,
     High,
@@ -81,6 +87,56 @@ pub struct Image {
     data: Vec<u8>,
 }
 
+/// How many images one quadrant can hold. The image id packs the quadrant into the upper 2 bits
+/// of a `u16`, which leaves 14 bits for the index inside the quadrant.
+const MAX_QUADRANT_SIZE: usize = 1 << 14;
+
+/// Loads one quadrant, sorted by file name.
+///
+/// `read_dir` yields entries in whatever order the file system happens to keep them in. The
+/// index into the returned vector is what `get_rand_image` packs into the image id and what
+/// ends up in the LsL recording, so reading unsorted would hand out ids that differ between
+/// machines and that cannot be resolved without the exact directory listing of that run. Only
+/// `.webp` files are taken so a stray `.DS_Store` or `Thumbs.db` cannot shift every id behind
+/// it. Ids still move when the image set itself changes; the trial log carries the file name
+/// next to the id for that reason.
+fn load_quadrant(path: &Path, valence: Magnitude, arousal: Magnitude) -> Result<Vec<Image>> {
+    let mut names: Vec<OsString> = fs::read_dir(path)
+        .with_context(|| format!("Failed to open image folder {}", path.display()))?
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_ok_and(|t| t.is_file()))
+        .map(|entry| entry.file_name())
+        .filter(|name| {
+            Path::new(name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("webp"))
+        })
+        .collect();
+    names.sort();
+
+    ensure!(
+        names.len() <= MAX_QUADRANT_SIZE,
+        "{} holds {} images, an image id has room for {}",
+        path.display(),
+        names.len(),
+        MAX_QUADRANT_SIZE
+    );
+
+    names
+        .into_iter()
+        .map(|name| {
+            let data = fs::read(path.join(&name))
+                .with_context(|| format!("Failed to read image {name:?}"))?;
+            Ok(Image {
+                name: name.to_string_lossy().to_string(),
+                valence,
+                arousal,
+                data,
+            })
+        })
+        .collect()
+}
+
 impl ImageManager {
     pub fn init(app: &AppHandle) -> Result<Self> {
         let path = app
@@ -88,74 +144,14 @@ impl ImageManager {
             .resolve("resources/images/", BaseDirectory::Resource)
             .context("Image folder not found")?;
 
-        let mut low_low = Vec::new();
-        let mut ll_p = path.clone();
-        ll_p.push("low_low");
-        for entry in fs::read_dir(ll_p).context("Failed to open image folder")? {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let pic = fs::read(entry.path())?;
-            low_low.push(Image {
-                name: entry.file_name().to_string_lossy().to_string(),
-                valence: Magnitude::Low,
-                arousal: Magnitude::Low,
-                data: pic,
-            });
-        }
-        let mut low_high = Vec::new();
-        let mut lh_p = path.clone();
-        lh_p.push("low_high");
-        for entry in fs::read_dir(lh_p).context("Failed to open image folder")? {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let pic = fs::read(entry.path())?;
-            low_high.push(Image {
-                name: entry.file_name().to_string_lossy().to_string(),
-                valence: Magnitude::Low,
-                arousal: Magnitude::High,
-                data: pic,
-            });
-        }
-        let mut high_low = Vec::new();
-        let mut hl_p = path.clone();
-        hl_p.push("high_low");
-        for entry in fs::read_dir(hl_p).context("Failed to open image folder")? {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let pic = fs::read(entry.path())?;
-            high_low.push(Image {
-                name: entry.file_name().to_string_lossy().to_string(),
-                valence: Magnitude::High,
-                arousal: Magnitude::Low,
-                data: pic,
-            });
-        }
-        let mut high_high = Vec::new();
-        let mut hh_p = path.clone();
-        hh_p.push("high_high");
-        for entry in fs::read_dir(hh_p).context("Failed to open image folder")? {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let pic = fs::read(entry.path())?;
-            high_high.push(Image {
-                name: entry.file_name().to_string_lossy().to_string(),
-                valence: Magnitude::High,
-                arousal: Magnitude::High,
-                data: pic,
-            });
-        }
+        let q = Quadrants {
+            low_low: load_quadrant(&path.join("low_low"), Magnitude::Low, Magnitude::Low)?,
+            low_high: load_quadrant(&path.join("low_high"), Magnitude::Low, Magnitude::High)?,
+            high_low: load_quadrant(&path.join("high_low"), Magnitude::High, Magnitude::Low)?,
+            high_high: load_quadrant(&path.join("high_high"), Magnitude::High, Magnitude::High)?,
+        };
 
         let dist = Alias::new(&[0.25; 4]);
-        let q = Quadrants {
-            low_low,
-            low_high,
-            high_low,
-            high_high,
-        };
         let state = State::new(&q);
 
         Ok(Self {
@@ -165,10 +161,13 @@ impl ImageManager {
         })
     }
 
-    pub fn get_rand_image(&mut self, init: bool) -> &Image {
-        if init {
-            self.state.reset();
-        }
+    /// Refills every quadrant pool. Called once at the start of an experiment and never at a
+    /// block boundary, so sampling without replacement carries on across blocks.
+    pub fn reset(&mut self) {
+        self.state.reset();
+    }
+
+    pub fn get_rand_image(&mut self) -> (u16, &Image) {
         let q = self.dist.generate();
         debug_assert!(q < 4);
         let i = match q {
@@ -179,6 +178,11 @@ impl ImageManager {
             _ => unreachable!(),
         };
         let index = self.state.pick(q);
-        &i[index]
+        // The upper 2 bits of the identifier are reserved for the quadrant, `load_quadrant`
+        // caps a bucket so the index always fits in the remaining 14.
+        debug_assert!(index < MAX_QUADRANT_SIZE);
+        let id = (q as u16) << 14 | (index as u16);
+        (id, &i[index])
     }
 }
+
