@@ -19,7 +19,7 @@ jobs:
             args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
             args: ''
-          - platform: 'windows-2025'
+          - platform: 'windows-2022'
             args: ''
 
     runs-on: ${{ matrix.platform }}
@@ -48,21 +48,20 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: select MSVC cmake generator (windows only)
-        if: matrix.platform == 'windows-2025' # This must match the platform value defined above.
+        if: matrix.platform == 'windows-2022' # This must match the platform value defined above.
         shell: bash
         run: |
-          # The `cmake` crate derives the generator from cc's `find_vs_version()`,
-          # which probes the MSBuild registry keys. Those are not reliably present
-          # on the hosted Windows images, so the lsl-sys build script panics with
-          # "couldn't determine visual studio generator" before cmake is ever run.
-          # Setting CMAKE_GENERATOR makes the cmake crate skip that detection.
+          # The `cmake` crate (0.1.54, pinned via lsl-sys) only knows how to emit
+          # generators up to "Visual Studio 17 2022", so the runner is pinned to
+          # windows-2022. Setting CMAKE_GENERATOR explicitly also stops the crate
+          # from relying on cc's MSBuild-registry probe to detect the version.
           echo "CMAKE_GENERATOR=Visual Studio 17 2022" >> "$GITHUB_ENV"
 
       - name: install frontend dependencies
         run: bun install 
 
       - name: install jq (windows only)
-        if: matrix.platform == 'windows-2025' # This must match the platform value defined above.
+        if: matrix.platform == 'windows-2022' # This must match the platform value defined above.
         uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
         with:
           version: '1.7'
