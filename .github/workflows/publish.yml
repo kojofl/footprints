@@ -19,7 +19,7 @@ jobs:
             args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
             args: ''
-          - platform: 'windows-latest'
+          - platform: 'windows-2025'
             args: ''
 
     runs-on: ${{ matrix.platform }}
@@ -47,11 +47,22 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: select MSVC cmake generator (windows only)
+        if: matrix.platform == 'windows-2025' # This must match the platform value defined above.
+        shell: bash
+        run: |
+          # The `cmake` crate derives the generator from cc's `find_vs_version()`,
+          # which probes the MSBuild registry keys. Those are not reliably present
+          # on the hosted Windows images, so the lsl-sys build script panics with
+          # "couldn't determine visual studio generator" before cmake is ever run.
+          # Setting CMAKE_GENERATOR makes the cmake crate skip that detection.
+          echo "CMAKE_GENERATOR=Visual Studio 17 2022" >> "$GITHUB_ENV"
+
       - name: install frontend dependencies
         run: bun install 
 
       - name: install jq (windows only)
-        if: matrix.platform == 'windows-latest' # This must match the platform value defined above.
+        if: matrix.platform == 'windows-2025' # This must match the platform value defined above.
         uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
         with:
           version: '1.7'
@@ -61,9 +72,8 @@ jobs:
         id: get_version
         shell: bash
         run: |
-          # Ensure jq is available (usually is on GitHub runners)
-          # sudo apt-get install jq # if not
-          VERSION=$(jq -r '.package.version' src-tauri/tauri.conf.json)
+          # tauri v2 keeps the version at the top level, not under `package`
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           echo "APP_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - uses: tauri-apps/tauri-action@51a9f1156b33df106d827c3a78f8f894946c5faa
