@@ -1,8 +1,17 @@
 import type { PlannedTrial } from "./blocks_state.js";
 
-/** A trial's walking condition: the label written to the log and the time budget in ms. */
+/**
+ * A trial's walking condition, as a stable discriminator. Ordered slowest to fastest in the LsL
+ * marker, `none` is for plan slots that involve no walking at all.
+ */
+export type SpeedKind = "none" | "very_slow" | "slow" | "normal" | "fast" | "very_fast";
+
+/**
+ * A trial's walking condition: the discriminator that goes into both the LsL marker and the log,
+ * and the time budget in ms.
+ */
 export interface Duration {
-	name: string;
+	kind: SpeedKind;
 	time: number;
 }
 
@@ -23,16 +32,16 @@ export function speed_conditions(
 	settings: SpeedSettings
 ): Duration[] {
 	const normal = (Number(length) / (Number(speed) / 3.6)) * 1000;
-	const conditions: Duration[] = [{ name: "Normal", time: normal }];
-	const variants: [boolean, string, number][] = [
-		[settings.very_slow, "Very slow", 1.2],
-		[settings.slow, "Slow", 1.1],
-		[settings.fast, "Fast", 0.9],
-		[settings.very_fast, "Very fast", 0.8],
+	const conditions: Duration[] = [{ kind: "normal", time: normal }];
+	const variants: [boolean, SpeedKind, number][] = [
+		[settings.very_slow, "very_slow", 1.2],
+		[settings.slow, "slow", 1.1],
+		[settings.fast, "fast", 0.9],
+		[settings.very_fast, "very_fast", 0.8],
 	];
-	for (const [enabled, name, factor] of variants) {
+	for (const [enabled, kind, factor] of variants) {
 		if (enabled) {
-			conditions.push({ name, time: normal * factor });
+			conditions.push({ kind, time: normal * factor });
 		}
 	}
 	return conditions;
@@ -76,7 +85,7 @@ export function balanced_durations(
 		// A pause occupies a plan slot but carries no walking; give it a placeholder so the
 		// result stays index aligned without drawing from or perturbing the balanced carry.
 		if (plan[start].kind === "pause") {
-			durations.push({ name: "Pause", time: 0 });
+			durations.push({ kind: "none", time: 0 });
 			start += 1;
 			continue;
 		}

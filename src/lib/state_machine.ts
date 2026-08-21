@@ -1,12 +1,17 @@
 import { FiniteStateMachine, PersistedState } from "runed";
-import { LsLEvent, publish_event } from "./lsl.js";
+import { eventFromTrial, publish_event, sessionMarker } from "./lsl.js";
 import { invoke } from "@tauri-apps/api/core";
 import { stimulus_debounce } from "./debounce.js";
 import { StimulusModState } from "./stimulus_time_mod.js";
 import { jittered_duration } from "./jitter.js";
 import type { PlannedTrial } from "./blocks_state.js";
-export type MyStates = "baseline" | "stimulus" | "go" | "rating" | "confirm" | "pause" | "canceled";
-export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "confirmed" | "continued" | "cancel";
+import { Settings } from "./settings_state.js";
+import type { Duration } from "./durations.js";
+import { SpeedState } from "./speed_state.js";
+import { LengthState } from "./length_state.js";
+import type { TrialImages } from "./trial_images.svelte.js";
+export type MyStates = "instruction" | "baseline" | "stimulus" | "go" | "rating" | "confirm" | "pause" | "canceled";
+export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "confirmed" | "continued" | "cancel" | "instructed" | "test_finished";
 
 // global reactive variable to track the experiment progress
 export const ExperimentIteration = new PersistedState("ex_iter", 0);
@@ -18,9 +23,26 @@ interface Log {
 	rating_time: string,
 }
 
-export function create_state_machine(cancel_callback: () => void, plan: PlannedTrial[]): FiniteStateMachine<MyStates, MyEvents> {
+/**
+ * @param mode A test run skips the instructions and stamps every marker as `test`, so a
+ * practice run cannot be mistaken for real data in the recording.
+ */
+export function create_state_machine(cancel_callback: () => void, plan: PlannedTrial[], durations: Duration[], images: TrialImages, mode: "experiment" | "test" = "experiment"): FiniteStateMachine<MyStates, MyEvents> {
+	const marker_block_type = mode === "test" ? "test" as const : undefined;
 	// We just created the experiment state machine so we are in the first iteration.
 	ExperimentIteration.current = 0;
+
+	// Nothing to run: the block configuration is empty. The machine has to start in the inert
+	// `canceled` state, because every other state stamps a marker from `plan[…]` on entry and
+	// would dereference a trial that does not exist.
+	if (plan.length === 0) {
+		const empty = new FiniteStateMachine<MyStates, MyEvents>("canceled", {
+			instruction: {}, baseline: {}, stimulus: {}, go: {}, rating: {}, confirm: {},
+			pause: {}, canceled: {},
+		});
+		cancel_callback();
+		return empty;
+	}
 
 	let log: Log = {
 		baseline_time: "",
@@ -47,12 +69,22 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 	// is stamped here so the screens never need to know about blocks.
 	function advance(data: any): MyStates | void {
 		const trial = plan[ExperimentIteration.current];
+		const duration = durations[ExperimentIteration.current];
 		let x = {
 			...log,
 			...data,
+			baseline_speed: SpeedState.current,
+			modification: duration.kind,
+			effective_speed:
+				((LengthState.current as number) /
+					(duration.time / 1000)) *
+				3.6,
+			name: images.current?.name,
+			n_valence: images.current?.valence,
+			n_arousal: images.current?.arousal,
 			block: trial.block + 1,
 			trial_in_block: trial.trial_in_block + 1,
-			has_stimulus: trial.kind === "stimulus",
+			block_type: trial.kind,
 		};
 		console.log(x);
 		invoke("add_rating", { rating: x });
@@ -60,16 +92,65 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 		return next_state();
 	}
 
+	// A pause carries nothing but its position in the plan. Logging it keeps the CSV a complete
+	// record of the run, the columns a trial fills are left empty.
+	function log_pause(trial: PlannedTrial): void {
+		invoke("add_rating", {
+			rating: {
+				block: trial.block + 1,
+				trial_in_block: trial.trial_in_block + 1,
+				block_type: trial.kind,
+				modification: "none",
+			},
+		});
+	}
+
 	// A pause block can be the very first entry, in which case the run opens on the break.
-	const initial: MyStates = plan[0]?.kind === "pause" ? "pause" : "baseline";
+	const first_trial_state: MyStates = plan[0].kind === "pause" ? "pause" : "baseline";
+	// A test run has no instructions, it is started from inside them.
+	const initial: MyStates = mode === "experiment" ? "instruction" : first_trial_state;
 
 	const experiment_state_machine = new FiniteStateMachine<MyStates, MyEvents>(
 		initial,
 		{
+			// The instructions are their own phase, not part of the baseline. They run for as
+			// long as the experimenter needs, so entering the baseline here would stamp its
+			// marker minutes before the fixation cross actually appears.
+			instruction: {
+				_enter: async () => {
+					await publish_event(sessionMarker());
+					// Warm the first trial's image so the baseline marker can carry its id
+					// without waiting for the fetch.
+					images.prefetch(0);
+				},
+				// A test run opened from the instructions drives the same global trial counter
+				// and draws from the same image pool. Put both back as soon as it closes, which
+				// leaves the prefetch time to settle before the real run starts.
+				test_finished: () => {
+					ExperimentIteration.current = 0;
+					images.reset();
+				},
+				instructed: () => {
+					return first_trial_state;
+				},
+				cancel: () => {
+					cancel_callback();
+					return "canceled";
+				},
+			},
 			baseline: {
 				_enter: async () => {
 					log.baseline_time = new Date().toISOString();
-					await publish_event(LsLEvent.Baseline);
+					const iteration = ExperimentIteration.current;
+					// Resolves right away, the image was prefetched during the previous trial.
+					// Only then does `images.current` belong to this trial.
+					await images.promote(iteration);
+					await publish_event(eventFromTrial(plan[iteration], "Baseline", {
+						image_id: images.current?.id,
+						speed: durations[iteration].kind,
+						block_type: marker_block_type,
+					}));
+					images.prefetch(iteration + 1);
 				},
 				start: () => {
 					return "stimulus";
@@ -82,7 +163,13 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			stimulus: {
 				_enter: async () => {
 					log.stimulus_time = new Date().toISOString();
-					await publish_event(LsLEvent.Stimulus);
+					const trial = plan[ExperimentIteration.current];
+					const duration = durations[ExperimentIteration.current];
+					await publish_event(eventFromTrial(trial, "Stimulus", {
+						image_id: images.current?.id,
+						speed: duration.kind,
+						block_type: marker_block_type,
+					}));
 					const random = jittered_duration(StimulusModState.current);
 					stimulus_debounce(experiment_state_machine, random * 1000)
 				},
@@ -95,11 +182,18 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			go: {
 				_enter: async () => {
 					log.go_time = new Date().toISOString();
-					await publish_event(LsLEvent.Movement);
+					const trial = plan[ExperimentIteration.current];
+					const duration = durations[ExperimentIteration.current];
+					await publish_event(eventFromTrial(trial, "Go", {
+						image_id: images.current?.id,
+						speed: duration.kind,
+						block_type: marker_block_type,
+					}));
 				},
 				// Without a stimulus there is nothing to rate, the subject only confirms.
 				g_fin: () => {
-					return plan[ExperimentIteration.current]?.kind === "stimulus" ? "rating" : "confirm";
+					return plan[ExperimentIteration.current]?.kind === "stimulus" &&
+						(Settings.current.rating.arousal || Settings.current.rating.valence) ? "rating" : "confirm";
 				},
 				cancel: () => {
 					cancel_callback();
@@ -111,7 +205,13 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			rating: {
 				_enter: async () => {
 					log.rating_time = new Date().toISOString();
-					await publish_event(LsLEvent.Rating);
+					const trial = plan[ExperimentIteration.current];
+					const duration = durations[ExperimentIteration.current];
+					await publish_event(eventFromTrial(trial, "RatingPrompt", {
+						image_id: images.current?.id,
+						speed: duration.kind,
+						block_type: marker_block_type,
+					}));
 				},
 				rated: (data: any) => {
 					return advance(data);
@@ -126,7 +226,13 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			confirm: {
 				_enter: async () => {
 					log.rating_time = new Date().toISOString();
-					await publish_event(LsLEvent.Rating);
+					const trial = plan[ExperimentIteration.current];
+					const duration = durations[ExperimentIteration.current];
+					await publish_event(eventFromTrial(trial, "RatingPrompt", {
+						image_id: images.current?.id,
+						speed: duration.kind,
+						block_type: marker_block_type,
+					}));
 				},
 				confirmed: (data: any) => {
 					return advance(data);
@@ -140,9 +246,18 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			// Idle marker until the marker system is reworked.
 			pause: {
 				_enter: async () => {
-					await publish_event(LsLEvent.Idle);
+					const iteration = ExperimentIteration.current;
+					// A pause shows no image; promoting clears the one from the trial before it.
+					await images.promote(iteration);
+					await publish_event(eventFromTrial(plan[iteration], "None", {
+						image_id: images.current?.id,
+						speed: durations[iteration].kind,
+						block_type: marker_block_type,
+					}));
+					images.prefetch(iteration + 1);
 				},
 				continued: () => {
+					log_pause(plan[ExperimentIteration.current]);
 					return next_state();
 				},
 				cancel: () => {

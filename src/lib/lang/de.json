@@ -38,8 +38,8 @@
 			},
 			"phase_3": {
 				"h2": "Phase 3: Bewegung",
-				"p1": "Durch ein Signal, <b>auditiv und visuell</b>, wird Ihnen signalisiert, dass Sie loslaufen sollen. Die <b>Zielgeschwindigkeit</b> wird Ihnen durch ein <b>animiertes Männchen</b> vorgegeben. Die <b>Geschwindigkeit</b> kann von Durchlauf zu Durchlauf <b>variieren</b>.",
-				"p2": "Sind Sie bei einer <b>Markierung</b>, kurz vor den Bildschirmen, angekommen haben Sie <b>3 Sekunden Zeit sich umzudrehen</b>. Nach diesen 3 Sekunden wird Ihnen wieder durch ein <b>Audiosignal</b>, sowie das Männchen,, signalisiert, dass Sie <b>loslaufen</b> sollen. <br /> Dieser Ablauf wiederholt sich <b>2 mal</b>. Bleiben Sie nach dem 2. Mal in der <b>Mitte</b> stehen."
+				"p1": "Durch ein Signal, <b>auditiv und visuell</b>, wird Ihnen signalisiert, dass Sie loslaufen sollen. Die <b>Zielgeschwindigkeit</b> wird Ihnen durch einen <b>bewegten Zeiger</b> auf dem Bildschirm vorgegeben. Die <b>Geschwindigkeit</b> kann von Durchlauf zu Durchlauf <b>variieren</b>.",
+				"p2": "Sind Sie bei einer <b>Markierung</b>, kurz vor den Bildschirmen, angekommen haben Sie <b>3 Sekunden Zeit sich umzudrehen</b>. Nach diesen 3 Sekunden wird Ihnen wieder durch ein <b>Audiosignal</b>, sowie den Zeiger, signalisiert, dass Sie <b>loslaufen</b> sollen. <br /> Dieser Ablauf wiederholt sich <b>2 mal</b>. Bleiben Sie nach dem 2. Mal in der <b>Mitte</b> stehen."
 			},
 			"phase_4": {
 				"h2": "Phase 4: Bewertung",

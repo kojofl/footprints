@@ -1,7 +1,5 @@
 <script lang="ts">
 	import type { ExperimentStateProps } from "./types.js";
-	import { SpeedState } from "$lib/speed_state.js";
-	import { LengthState } from "$lib/length_state.js";
 	import { _ } from "svelte-i18n";
 
 	// Stands in for the rating screen on trials without a stimulus: there is no image to
@@ -12,14 +10,7 @@
 		if (e.key !== "Enter") {
 			return;
 		}
-		props.state_machine.send("confirmed", {
-			baseline_speed: SpeedState.current,
-			modification: props.duration.name,
-			effective_speed:
-				((LengthState.current as number) /
-					(props.duration.time / 1000)) *
-				3.6,
-		});
+		props.state_machine.send("confirmed");
 	}
 </script>
 
