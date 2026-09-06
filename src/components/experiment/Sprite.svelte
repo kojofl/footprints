@@ -46,9 +46,8 @@
 		animation.play();
 		animation.onfinish = async () => {
 			tracker!.style.left = `${right_tick}px`;
-			await sleep(1000);
 			left = true;
-			await sleep(2000);
+			await sleep(3000);
 			if (Settings.current.sound_cue) {
 				invoke("play_sound");
 			}
@@ -62,9 +61,8 @@
 			animation2.play();
 			animation2.onfinish = async () => {
 				tracker!.style.left = `${left_tick}px`;
-				await sleep(1000);
 				left = false;
-				await sleep(2000);
+				await sleep(3000);
 				if (Settings.current.sound_cue) {
 					invoke("play_sound");
 				}
